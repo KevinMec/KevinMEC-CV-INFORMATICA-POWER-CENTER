@@ -8,7 +8,7 @@
 ¡Hola! Bienvenido a mi portafolio profesional interactivo. Este repositorio contiene mi Currículum Vitae en formato web y una serie de casos de estudio técnicos detallados sobre desarrollo ETL, modelado de datos y optimización.
 
 Puedes visualizar el portafolio en vivo a través de GitHub Pages (asegúrate de habilitarlo en tu repositorio):
-👉 **[Ver Portafolio Interactivo Aquí](https://kevinmec.github.io/kevinmec-cv-informatica-power-center/)**
+👉 **[Ver Portafolio Interactivo Aquí](https://kevinmec.github.io/KevinMEC-CV-ETL-INFORMATICA-POWER-CENTER/)**
 
 ---
 
