@@ -55,4 +55,4 @@ Si estás buscando un ingeniero de datos enfocado en la calidad, automatización
 * 📍 **Ubicación:** Culiacán, Sinaloa, México.
 
 ---
-*Diseñado y documentado por Kevin Mizael Gómez Uriarte © 2026.*
+*Diseñado y documentado por Kevin Gómez © 2026.*
