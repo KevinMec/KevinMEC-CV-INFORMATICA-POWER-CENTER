@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caso de Estudio Técnico | Integración de Archivos Planos (Flat Files) en ETL</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0f0fe',
+                            200: '#bae0fd',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#030712',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Tarjetas de Caso de Estudio Limpias */
+        .case-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+            border-radius: 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .case-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Línea narrativa conectora */
+        .story-timeline-line {
+            position: absolute;
+            left: 19px;
+            top: 36px;
+            bottom: 20px;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Estilos de impresión para PDF */
+        @media print {
+            header, footer, .no-print, nav { display: none !important; }
+            body { background: white; color: black; }
+            .case-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+            .preview-drawer { display: block !important; }
+        }
+    </style>
+</head>
+<body class="custom-scrollbar min-h-screen flex flex-col justify-between selection:bg-brand-600 selection:text-white">
+
+    <!-- Encabezado de Navegación -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    <i class="fa-solid fa-file-csv"></i>
+                </div>
+                <div>
+                    <span class="text-sm font-bold text-slate-900 tracking-tight">Kevin Mizael Gómez Uriarte</span>
+                    <span class="text-xs text-slate-500 block hidden sm:block">Estudio de Caso Técnico • Data Engineering (Flat Files)</span>
+                </div>
+            </div>
+
+            <!-- Enlaces Directos -->
+            <nav class="hidden md:flex items-center space-x-5 text-xs font-medium text-slate-600">
+                <a href="#acto-1" class="hover:text-brand-700 transition-colors">1. El Problema</a>
+                <a href="#acto-2" class="hover:text-brand-700 transition-colors">2. Arquitectura</a>
+                <a href="#acto-3" class="hover:text-brand-700 transition-colors">3. Procedimiento</a>
+                <a href="#acto-4" class="hover:text-brand-700 transition-colors">4. Aprendizajes</a>
+            </nav>
+
+            <!-- Acciones -->
+            <div class="flex items-center space-x-2">
+                <a href="https://www.youtube.com/watch?v=B3bvlOvmbmc" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+                    <i class="fa-brands fa-youtube text-red-600"></i>
+                    <span class="hidden sm:inline">Ver Masterclass</span>
+                </a>
+                <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-700 hover:bg-brand-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Guardar PDF</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Contenedor Principal de Contenido -->
+    <main class="max-w-4xl mx-auto px-4 py-10 space-y-12 flex-grow">
+
+        <!-- Banner Principal -->
+        <section class="space-y-4 text-left border-b border-slate-200 pb-8">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium font-mono">
+                <i class="fa-solid fa-file-export text-brand-700"></i> Informatica PowerCenter Flat File Handling
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                Integración y Transformación de Archivos Planos: File-to-DB, DB-to-File y File-to-File
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl">
+                Un análisis técnico detallado sobre cómo construir pipelines de ingesta y extracción de datos utilizando archivos planos (CSV, DAT, TXT). Abordaremos la configuración de metadatos delimitados y de ancho fijo, así como la gestión de directorios del servidor ETL para asegurar la interoperabilidad con sistemas externos legacy.
+            </p>
+        </section>
+
+        <!-- ACTO 1: NARRACIÓN DEL PROBLEMA -->
+        <section id="acto-1" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">01</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 1: El Desafío de la Desconexión de Sistemas (Archivos Planos)</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    En arquitecturas empresariales del mundo real, no todos los sistemas se comunican mediante conexiones directas a bases de datos relacionales. A menudo, las dependencias de terceros, los sistemas legacy o las plataformas SaaS entregan o requieren datos en formatos de "Archivos Planos" (Flat Files) como <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.csv</code>, <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.txt</code> o <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">.dat</code>.
+                </p>
+                <p>
+                    El requerimiento para este proyecto consistió en construir tres flujos de integración independientes que garantizaran el procesamiento masivo de datos sin conexiones ODBC directas en los extremos del pipeline:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-file-import text-brand-600"></i> Ingesta (File to DB)
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Cargar registros de clientes (<code class="font-mono text-xs">customers_ff.txt</code>) provenientes de un FTP directamente hacia tablas normalizadas en Oracle SQL.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-file-export text-emerald-600"></i> Extracción (DB to File)
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Extraer reportes estructurados desde la base de datos hacia archivos <code class="font-mono text-xs">.csv</code> para su consumo por herramientas externas.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-file-lines text-amber-600"></i> Transformación (File to File)
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Leer un archivo de texto, limpiar el formato y reestructurarlo en un nuevo archivo de ancho fijo (Fixed-Width) sin tocar la base de datos.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Esta situación me llevó a plantear:</strong> ¿Cómo configuro las propiedades exactas de importación de metadatos delimitados frente a los de ancho fijo, y cómo gestiona Informatica las rutas lógicas del servidor para evitar fallos por archivos "no encontrados"?
+                </div>
+            </div>
+        </section>
+
+        <!-- ACTO 2: ARQUITECTURA Y ESTRATEGIA -->
+        <section id="acto-2" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">02</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 2: Topología de Flujos de Archivos y Metadatos</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    A diferencia de las tablas relacionales que proporcionan metadatos autodescriptivos al importar (nombres de columnas y tipos de datos), los archivos planos requieren que el desarrollador defina explícitamente la estructura (si es delimitado por comas, pipes o tabulaciones, o si es posicional).
+                </p>
+
+                <!-- DIAGRAMA SVG DE LOS TRES FLUJOS -->
+                <div class="p-4 rounded-xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                        <span>Arquitectura: Manejo de Archivos Planos</span>
+                        <span>3 Topologías de Pipeline ETL</span>
+                    </div>
+
+                    <div class="w-full overflow-x-auto py-2">
+                        <svg class="w-full min-w-[650px]" viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Líneas de división de flujos -->
+                            <path d="M 0 60 L 720 60" stroke="#334155" stroke-width="1" stroke-dasharray="4 4" />
+                            <path d="M 0 120 L 720 120" stroke="#334155" stroke-width="1" stroke-dasharray="4 4" />
+                            
+                            <!-- FLUJO 1: File to DB -->
+                            <text x="10" y="35" fill="#94a3b8" font-size="9" font-weight="bold" font-family="monospace">1. FILE TO DB</text>
+                            
+                            <rect x="120" y="15" width="100" height="30" rx="4" fill="#1e293b" stroke="#eab308" stroke-width="1.5"/>
+                            <text x="170" y="34" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">customers_ff.txt</text>
+
+                            <path d="M 220 30 L 260 30" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+                            
+                            <rect x="260" y="15" width="200" height="30" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="360" y="34" text-anchor="middle" fill="#f8fafc" font-size="9">Mapping (Transformations)</text>
+
+                            <path d="M 460 30 L 500 30" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+
+                            <rect x="500" y="15" width="100" height="30" rx="4" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="550" y="34" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">Oracle Table</text>
+
+
+                            <!-- FLUJO 2: DB to File -->
+                            <text x="10" y="95" fill="#94a3b8" font-size="9" font-weight="bold" font-family="monospace">2. DB TO FILE</text>
+
+                            <rect x="120" y="75" width="100" height="30" rx="4" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="170" y="94" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">Oracle Table</text>
+
+                            <path d="M 220 90 L 260 90" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+                            
+                            <rect x="260" y="75" width="200" height="30" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="360" y="94" text-anchor="middle" fill="#f8fafc" font-size="9">Mapping (Transformations)</text>
+
+                            <path d="M 460 90 L 500 90" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+
+                            <rect x="500" y="75" width="100" height="30" rx="4" fill="#1e293b" stroke="#eab308" stroke-width="1.5"/>
+                            <text x="550" y="94" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">orders_ff.csv</text>
+
+
+                            <!-- FLUJO 3: File to File -->
+                            <text x="10" y="155" fill="#94a3b8" font-size="9" font-weight="bold" font-family="monospace">3. FILE TO FILE</text>
+
+                            <rect x="120" y="135" width="100" height="30" rx="4" fill="#1e293b" stroke="#eab308" stroke-width="1.5"/>
+                            <text x="170" y="154" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">Input_FF.dat</text>
+
+                            <path d="M 220 150 L 260 150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+                            
+                            <rect x="260" y="135" width="200" height="30" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="360" y="154" text-anchor="middle" fill="#f8fafc" font-size="9">Mapping (Transformations)</text>
+
+                            <path d="M 460 150 L 500 150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+
+                            <rect x="500" y="135" width="100" height="30" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1.5"/>
+                            <text x="550" y="154" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">Output_FF.csv</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Punto crítico de diseño:</strong> En Informatica, la lectura/escritura de archivos no se rige por cadenas ODBC, sino por variables de sistema a nivel del servidor, concretamente <code class="font-mono bg-white px-1 py-0.5 rounded text-brand-800">$PMSourceFileDir</code> y <code class="font-mono bg-white px-1 py-0.5 rounded text-brand-800">$PMTargetFileDir</code>.
+                </div>
+            </div>
+        </section>
+
+        <!-- ACTO 3: PROCEDIMIENTO PASO A PASO -->
+        <section id="acto-3" class="space-y-8 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">03</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 3: Ejecución Técnica Paso a Paso</h2>
+            </div>
+
+            <div class="relative space-y-8 pl-6 sm:pl-8">
+                <div class="story-timeline-line"></div>
+
+                <!-- PASO 1 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        1
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Importación de Metadatos y Estructuras en Informatica Designer
+                            </h3>
+                            <button onclick="togglePreview('prev-1')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 05:20]</span>
+                            </button>
+                        </div>
+
+                        <!-- Explicación causal -->
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> PowerCenter no puede interpretar un archivo plano sin que definamos su tipo (Delimitado vs Ancho Fijo) y si contiene o no cabeceras.</p>
+                            <p><strong>Decisión técnica:</strong> Utilizar el menú <code class="font-mono text-xs">Source Analyzer -> Import from File</code>. Durante el Wizard, seleccionar "Delimited", indicar la coma (<code class="font-mono text-xs">,</code>) como separador y activar la casilla "Import field names from first line".</p>
+                            <p><strong>Resultado verificado:</strong> Se generó el Source Qualifier correcto permitiendo ajustar los tipos de datos a <code class="font-mono text-xs">String</code> y <code class="font-mono text-xs">Number</code>. Para el caso "DB to File", se realizó el procedimiento inverso en el <code class="font-mono text-xs">Target Designer -> Create -> Flat File</code>.</p>
+                        </div>
+
+                        <!-- Bloque de código interactivo -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 text-slate-300 rounded-t-md text-xs font-mono">
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="switchSqlTab('tab-sql')" id="btn-tab-sql" class="px-2 py-0.5 rounded bg-brand-700 text-white font-semibold hover:bg-brand-600 transition-colors">DDL Tablas (MKTABLES)</button>
+                                    <button onclick="switchSqlTab('tab-csv-in')" id="btn-tab-csv-in" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Source File (.csv)</button>
+                                    <button onclick="switchSqlTab('tab-csv-out')" id="btn-tab-csv-out" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Target File (.dat)</button>
+                                </div>
+                                <button onclick="copyActiveCode()" class="hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> Copiar
+                                </button>
+                            </div>
+
+                            <!-- PESTAÑA 1: MKTABLES.SQL -->
+                            <pre id="code-sql" class="sql-tab-content bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- CREACIÓN DE TABLAS OBJETIVO EN ORACLE
+-- (Para el flujo File-to-DB)
+-- ==========================================
+CREATE TABLE STG_CUSTOMERS (
+    CUST_ID NUMBER(10),
+    CUST_NAME VARCHAR2(100),
+    CITY VARCHAR2(50),
+    COUNTRY VARCHAR2(50),
+    REGISTRATION_DATE DATE,
+    CONSTRAINT PK_STG_CUSTOMERS PRIMARY KEY (CUST_ID)
+);
+
+CREATE TABLE STG_ORDERS (
+    ORDER_ID NUMBER(10),
+    CUST_ID NUMBER(10),
+    ORDER_AMOUNT NUMBER(10,2),
+    ORDER_DATE DATE,
+    CONSTRAINT PK_STG_ORDERS PRIMARY KEY (ORDER_ID)
+);
+COMMIT;</code></pre>
+
+                            <!-- PESTAÑA 2: CSV SOURCE -->
+                            <pre id="code-csv-in" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>CUST_ID,CUST_NAME,CITY,COUNTRY,REGISTRATION_DATE
+101,John Doe,New York,USA,2023-01-15
+102,Alice Smith,London,UK,2023-02-20
+103,Rajesh Kumar,Mumbai,India,2023-03-10
+104,Maria Garcia,Madrid,Spain,2023-04-05
+105,Wei Chen,Beijing,China,2023-05-12</code></pre>
+
+                            <!-- PESTAÑA 3: TARGET CSV/DAT -->
+                            <pre id="code-csv-out" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- Generado por el Flujo DB-to-File (Delimitado por Pipes)
+ORDER_ID|CUST_ID|ORDER_AMOUNT|ORDER_DATE
+5001|101|150.50|10/24/2023
+5002|102|299.99|10/25/2023
+5003|101|85.00|10/26/2023
+5004|104|500.00|10/26/2023</code></pre>
+                        </div>
+
+                        <!-- Gaveta de vista previa -->
+                        <div id="prev-1" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-2 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia Lógica [Min 05:20]</span>
+                                <span class="text-slate-400">Flat File Import Wizard</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-950 rounded border border-slate-800 space-y-1 text-slate-300">
+                                <div>Importación de <code class="text-brand-300">customers_ff.txt</code>.</div>
+                                <div><span class="text-amber-400">☑</span> Import field names from first line.</div>
+                                <div><span class="text-amber-400">☑</span> Delimited (Comma).</div>
+                                <div>Ajuste manual de las longitudes de cadena (String) a 255 caracteres para evitar truncamientos.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 2 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        2
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Construcción de Mappings y Formato de Salida
+                            </h3>
+                            <button onclick="togglePreview('prev-2')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 16:45]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Los archivos extraídos desde la base de datos (DB-to-File) se generaban sin la primera fila de cabeceras, lo que invalidaba el archivo para los sistemas de destino.</p>
+                            <p><strong>Decisión técnica:</strong> Aunque el Mapping Designer enruta los datos directamente, el formato final del Target Flat File requiere configuración. Entré a las propiedades del Target Flat File en el Mapping Designer, seleccioné el botón <em>Advanced</em> y establecí <code class="font-mono text-xs">Header Options = Output Field Names</code>.</p>
+                            <p><strong>Resultado verificado:</strong> El archivo extraído incluyó exitosamente la primera fila con los nombres exactos de los puertos, validando la estructura del reporte.</p>
+                        </div>
+
+                        <div id="prev-2" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia Lógica [Min 16:45]</span>
+                                <span class="text-slate-400">Target Designer - File Properties</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Configuración avanzada del archivo de salida: Cambio de separador de Coma a Pipe (<code class="text-brand-300">|</code>) y activación de la opción <code class="text-emerald-400">Output Field Names</code> para incluir las cabeceras en el archivo plano.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 3 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        3
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Configuración Crítica de Sesiones y Directorios del Servidor
+                            </h3>
+                            <button onclick="togglePreview('prev-3')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 25:10]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Informatica ejecuta sus flujos en el lado del servidor, no en la máquina local. Si la sesión no tiene la ruta exacta donde reside físicamente el archivo, arroja el clásico error <code class="font-mono text-xs text-rose-600">FR_3000 Error opening file</code>.</p>
+                            <p><strong>Decisión técnica:</strong> En el **Workflow Manager** $\rightarrow$ Propiedades de la Sesión $\rightarrow$ Pestaña <em>Mapping</em>. Para las fuentes Flat File, configuré el atributo <strong>Source file directory</strong> usando la variable global <code class="font-mono text-xs">$PMSourceFileDir\</code> y definí explícitamente el <strong>Source file name</strong> (ej. <code class="font-mono text-xs">customers_ff.txt</code>). Para el destino hice lo análogo utilizando <code class="font-mono text-xs">$PMTargetFileDir\</code>.</p>
+                            <p><strong>Justificación técnica:</strong> El uso de variables de entorno (<code class="font-mono text-xs">$PM...</code>) garantiza que el código sea escalable y portable entre los entornos de Desarrollo, QA y Producción sin necesidad de reescribir rutas hardcodeadas en disco (ej. <code class="font-mono text-xs">C:\Informatica\server\...</code>).</p>
+                        </div>
+
+                        <div id="prev-3" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia Lógica [Min 25:10]</span>
+                                <span class="text-slate-400">Session Properties - Connections</span>
+                            </div>
+                            <ul class="text-slate-300 list-disc list-inside space-y-1">
+                                <li><strong>Source Type:</strong> File</li>
+                                <li><strong>Source file directory:</strong> <code class="text-emerald-400">$PMSourceFileDir\</code></li>
+                                <li><strong>Source file name:</strong> <code class="text-amber-400">customers_ff.txt</code></li>
+                                <li><strong>Target file directory:</strong> <code class="text-emerald-400">$PMTargetFileDir\</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 4 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        4
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Ejecución en Workflow Monitor y Confirmación de Transmisión
+                            </h3>
+                            <button onclick="togglePreview('prev-4')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 35:00]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Tras ejecutar los tres flujos, era necesario validar que los datos leídos del archivo plano llegaran a Oracle (File-to-DB), y viceversa.</p>
+                            <p><strong>Decisión técnica:</strong> Monitorear las estadísticas de ejecución (Run Properties) en el <strong>Workflow Monitor</strong> para contrastar las métricas de <code class="font-mono text-xs">Applied Rows</code> frente a <code class="font-mono text-xs">Affected Rows</code>.</p>
+                            <p><strong>Resultado verificado:</strong> Todos los flujos marcaron estado <code class="font-mono text-xs text-emerald-700 font-bold bg-emerald-50 px-1 rounded">SUCCEEDED</code>. Los archivos físicos generados en <code class="font-mono text-xs">$PMTargetFileDir</code> fueron abiertos en NotePad++, confirmando que respetaban los delimitadores elegidos (comas/pipes) y contaban con los Output Field Names correctos.</p>
+                        </div>
+
+                        <div id="prev-4" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia Lógica [Min 35:00]</span>
+                                <span class="text-slate-400">Workflow Monitor - Ejecución Exitosa</span>
+                            </div>
+                            <p class="text-slate-300">
+                                <strong>Task:</strong> <code class="text-brand-300">s_m_FILE_TO_DB</code> | <strong>Status:</strong> <span class="text-emerald-400">Succeeded</span> | <strong>Rows Applied:</strong> 1500.<br>
+                                Se verifica que el archivo físico fue depositado correctamente en la carpeta local de Informatica Server mapeada a la unidad del host.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ACTO 4: APRENDIZAJES Y RESULTADOS -->
+        <section id="acto-4" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">04</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 4: Aprendizajes Clave de Arquitectura (Flat Files)</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    El dominio de la importación, exportación y manipulación de archivos planos es una competencia indispensable en cualquier arquitecto de datos, ya que no toda la información viaja por conexiones ODBC.
+                </p>
+
+                <div class="space-y-3 text-xs">
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">1. Diferencia estructural en Metadatos</div>
+                        <p class="text-slate-600">
+                            Las tablas relacionales declaran automáticamente su estructura al ser importadas. Los archivos planos no; dependen completamente de que el desarrollador defina si el parseo será <code class="font-mono text-xs font-bold">Delimited</code> (dinámico por un carácter como coma o pipe) o <code class="font-mono text-xs font-bold">Fixed-Width</code> (rígido, donde la columna X abarca del byte 1 al 15).
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">2. Portabilidad de Variables Globales</div>
+                        <p class="text-slate-600">
+                            Nunca se deben *hardcodear* rutas como <code class="font-mono text-xs">C:\Users\Data\File.csv</code> en el servidor. El uso sistemático de <code class="font-mono text-xs font-bold">$PMSourceFileDir</code> y <code class="font-mono text-xs font-bold">$PMTargetFileDir</code> asegura que los Workflows puedan migrar de servidores Windows a UNIX/Linux sin romper los jobs en Producción.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">3. Precisión de Cadenas (Strings)</div>
+                        <p class="text-slate-600">
+                            Al importar Flat Files, Informatica suele asignar una longitud por defecto (ej. 10 o 255 bytes). Es una mejor práctica analizar la longitud real de la fuente y aumentar generosamente la Precisión del Source Qualifier para prevenir truncamientos silentes en flujos productivos de datos sucios.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Pie de página sencillo -->
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+                Caso de Estudio de Ingeniería de Datos &copy; 2026 • Kevin Mizael Gómez Uriarte
+            </div>
+            <a href="https://www.youtube.com/watch?v=B3bvlOvmbmc" target="_blank" rel="noopener noreferrer" class="hover:text-brand-700 transition-colors flex items-center gap-1 font-medium">
+                <i class="fa-brands fa-youtube text-red-600"></i> Flat Files Handling Masterclass
+            </a>
+        </div>
+    </footer>
+
+    <!-- Lógica Interactivas -->
+    <script>
+        function switchSqlTab(tabId) {
+            // Ocultar todos los contenidos de pestañas
+            document.querySelectorAll('.sql-tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Restablecer estado de botones
+            const buttons = ['btn-tab-sql', 'btn-tab-csv-in', 'btn-tab-csv-out'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('bg-brand-700', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            // Mostrar contenido destino
+            const targetEl = document.getElementById(tabId.replace('btn-', 'code-').replace('tab-', 'code-'));
+            if (targetEl) targetEl.classList.remove('hidden');
+
+            // Destacar botón activo
+            const activeBtn = document.getElementById(tabId);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+                activeBtn.classList.add('bg-brand-700', 'text-white');
+            }
+        }
+
+        function copyActiveCode() {
+            const visibleTab = document.querySelector('.sql-tab-content:not(.hidden)');
+            if (visibleTab) {
+                copyCode(visibleTab.id);
+            }
+        }
+
+        function togglePreview(id) {
+            const drawer = document.getElementById(id);
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function copyCode(elementId) {
+            const codeEl = document.getElementById(elementId);
+            if (!codeEl) return;
+            const textToCopy = codeEl.innerText;
+            
+            // API Clipboard con fallback
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => showToast('¡Código copiado al portapapeles!'))
+                    .catch(() => fallbackCopy(textToCopy));
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('¡Código copiado al portapapeles!');
+            } catch (err) {
+                showToast('Error al copiar el texto');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(msg) {
+            const existingToast = document.getElementById('active-toast');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'active-toast';
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg border border-slate-700 transition-all duration-300';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2200);
+        }
+    </script>
+
+</body>
+</html>

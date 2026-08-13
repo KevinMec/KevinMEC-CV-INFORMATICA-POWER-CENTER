@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caso de Estudio Técnico | Pipeline ETL con Informatica PowerCenter & Oracle SQL</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0f0fe',
+                            200: '#bae0fd',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#030712',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Clean Case Study Cards */
+        .case-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+            border-radius: 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .case-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Narrative connector timeline */
+        .story-timeline-line {
+            position: absolute;
+            left: 19px;
+            top: 36px;
+            bottom: 20px;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Print styles for Guardar PDF */
+        @media print {
+            header, footer, .no-print, nav { display: none !important; }
+            body { background: white; color: black; }
+            .case-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+            .preview-drawer { display: block !important; }
+        }
+    </style>
+</head>
+<body class="custom-scrollbar min-h-screen flex flex-col justify-between selection:bg-brand-600 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    <i class="fa-solid fa-code-branch"></i>
+                </div>
+                <div>
+                    <span class="text-sm font-bold text-slate-900 tracking-tight">Kevin Mizael Gómez Uriarte</span>
+                    <span class="text-xs text-slate-500 block hidden sm:block">Estudio de Caso Técnico • Data Engineering</span>
+                </div>
+            </div>
+
+            <!-- Jump Links -->
+            <nav class="hidden md:flex items-center space-x-5 text-xs font-medium text-slate-600">
+                <a href="#acto-1" class="hover:text-brand-700 transition-colors">1. El Problema</a>
+                <a href="#acto-2" class="hover:text-brand-700 transition-colors">2. Arquitectura</a>
+                <a href="#acto-3" class="hover:text-brand-700 transition-colors">3. Procedimiento</a>
+                <a href="#acto-4" class="hover:text-brand-700 transition-colors">4. Aprendizajes</a>
+            </nav>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-2">
+                <a href="https://www.youtube.com/watch?v=wxwjpPrya0I" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+                    <i class="fa-brands fa-youtube text-red-600"></i>
+                    <span class="hidden sm:inline">Ver Masterclass</span>
+                </a>
+                <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-700 hover:bg-brand-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Guardar PDF</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto px-4 py-10 space-y-12 flex-grow">
+
+        <!-- Hero Header -->
+        <section class="space-y-4 text-left border-b border-slate-200 pb-8">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium font-mono">
+                <i class="fa-solid fa-database text-brand-700"></i> Informatica PowerCenter + Oracle SQL
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                Construcción y Optimización de un Pipeline ETL con Lookup Dinámico
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl">
+                Un recorrido técnico en primera persona sobre cómo abordé la integración de datos heterogéneos de cricket (IPL), resolví cuellos de botella en consultas relacionales, gestioné memorias caché en el servidor ETL y corregí errores de rutas en archivos planos.
+            </p>
+        </section>
+
+        <!-- ACT 1: STORYTELLING THE PROBLEM -->
+        <section id="acto-1" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">01</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 1: El Diagnóstico Inicial y la Inconsistencia de Datos</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    Cuando comencé a analizar el conjunto de datos deportivos para este proyecto, me encontré con un problema clásico de ingeniería de datos: los registros estaban dispersos en tablas relacionales sin restricciones y los datos de referencia estaban incompletos.
+                </p>
+                <p>
+                    Específicamente, los datos de los jugadores (<code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">PLAYERS</code>) y el rendimiento en los partidos (<code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">MATCHES</code>) existían en Oracle SQL, pero la tabla maestra de equipos (<code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">TEAM_INFO</code>) no contenía información para el equipo <strong>Gujarat Titans (GT)</strong>. Esto me forzó a diseñar una estrategia capaz de manejar registros huérfanos sin romper el flujo de carga.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Datos Faltantes
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Falta intencional de registros de equipos en la tabla referencial para poner a prueba los escenarios de <span class="font-mono text-slate-800">Not Found</span>.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-gauge-simple-high text-slate-600"></i> Búsquedas Ineficientes
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            La ausencia de claves primarias e índices obligaba al motor a realizar Full Table Scans costosos en cada cruce de información.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open text-slate-600"></i> Fallos en Flat Files
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Al integrar salarios en formato CSV, el motor de Informatica abortaba la sesión al buscar archivos en la ruta de fuentes y no en la de caché.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Esta situación me llevó a preguntarme:</strong> ¿Cómo puedo garantizar que las búsquedas sean eficientes a nivel de base de datos y que el pipeline clasifique de manera transparente los datos con o sin coincidencia?
+                </div>
+            </div>
+        </section>
+
+        <!-- ACT 2: ARCHITECTURE & STRATEGY -->
+        <section id="acto-2" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">02</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 2: Definición de la Solución y Diagrama de Flujo</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    Para resolver este desafío, decidí construir una solución de dos capas: primero, optimizar el esquema relacional en Oracle mediante indexación adecuada; segundo, diseñar un pipeline modular en Informatica PowerCenter utilizando un <strong>Connected Lookup</strong> con evaluación condicional de resultados.
+                </p>
+
+                <!-- REAL SVG DIAGRAM -->
+                <div class="p-4 rounded-xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                        <span>Diagrama de Flujo de Datos ETL</span>
+                        <span>Oracle / CSV → PowerCenter → Target</span>
+                    </div>
+
+                    <div class="w-full overflow-x-auto py-2">
+                        <svg class="w-full min-w-[600px]" viewBox="0 0 680 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background Grid Lines -->
+                            <path d="M 0 80 L 680 80" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+                            
+                            <!-- Node 1: PLAYERS -->
+                            <rect x="10" y="20" width="120" height="42" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="70" y="38" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">PLAYERS</text>
+                            <text x="70" y="52" text-anchor="middle" fill="#94a3b8" font-size="8">Oracle / CSV Source</text>
+
+                            <!-- Node 2: MATCHES -->
+                            <rect x="10" y="98" width="120" height="42" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="70" y="116" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">MATCHES</text>
+                            <text x="70" y="130" text-anchor="middle" fill="#94a3b8" font-size="8">Oracle / CSV Source</text>
+
+                            <!-- Connector Arrows to Joiner -->
+                            <path d="M 130 41 L 170 41 L 170 70 L 180 70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" fill="none"/>
+                            <path d="M 130 119 L 170 119 L 170 90 L 180 90" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Node 3: JNRTRANS -->
+                            <rect x="180" y="60" width="110" height="42" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="235" y="78" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">JNRTRANS</text>
+                            <text x="235" y="92" text-anchor="middle" fill="#94a3b8" font-size="8">Normal Join (PLAYER_ID)</text>
+
+                            <!-- Arrow to Lookup -->
+                            <path d="M 290 81 L 330 81" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Node 4: LKP_TEAM_INFO -->
+                            <rect x="330" y="60" width="115" height="42" rx="6" fill="#1e293b" stroke="#2563eb" stroke-width="1.5"/>
+                            <text x="387" y="78" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">LKP_TEAM_INFO</text>
+                            <text x="387" y="92" text-anchor="middle" fill="#94a3b8" font-size="8">Connected Lookup</text>
+
+                            <!-- Lookup Reference Table Floating Node -->
+                            <rect x="335" y="10" width="105" height="30" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1" stroke-dasharray="3 3"/>
+                            <text x="387" y="28" text-anchor="middle" fill="#cbd5e1" font-size="8">Ref: TEAM_INFO</text>
+                            <path d="M 387 40 L 387 60" stroke="#475569" stroke-width="1" stroke-dasharray="2 2"/>
+
+                            <!-- Arrow to Expression -->
+                            <path d="M 445 81 L 485 81" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Node 5: EXPTRANS -->
+                            <rect x="485" y="60" width="105" height="42" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+                            <text x="537" y="78" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">EXPTRANS</text>
+                            <text x="537" y="92" text-anchor="middle" fill="#94a3b8" font-size="8">Status (Found/Not Found)</text>
+
+                            <!-- Arrow to Target -->
+                            <path d="M 590 81 L 620 81" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Node 6: TARGET -->
+                            <rect x="620" y="60" width="50" height="42" rx="6" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="645" y="78" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">TARGET</text>
+                            <text x="645" y="92" text-anchor="middle" fill="#bae0fd" font-size="7">DIM_TABLE</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <p>
+                    Elegí utilizar un <strong>Connected Lookup</strong> en lugar de un Unconnected Lookup porque necesitaba retornar múltiples columnas de metadatos (<code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">TEAM_CITY</code> y <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">TEAM_COACH</code>) para cada fila entrante en el flujo directo de datos.
+                </p>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Con el diseño trazado:</strong> El siguiente paso fue la implementación técnica paso a paso en Oracle e Informatica.
+                </div>
+            </div>
+        </section>
+
+        <!-- ACT 3: STEP BY STEP PROCEDURE -->
+        <section id="acto-3" class="space-y-8 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">03</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 3: Ejecución Técnica Paso a Paso</h2>
+            </div>
+
+            <div class="relative space-y-8 pl-6 sm:pl-8">
+                <div class="story-timeline-line"></div>
+
+                <!-- STEP 1 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        1
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Optimización del Esquema Relacional en Oracle SQL
+                            </h3>
+                            <button onclick="togglePreview('prev-1')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 03:04]</span>
+                            </button>
+                        </div>
+
+                        <!-- Causal explanation -->
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Sin Primary Keys ni índices, las consultas de cruce en Oracle ejecutaban Full Table Scans innecesarios.</p>
+                            <p><strong>Decisión técnica:</strong> Agregar restricciones relacionales (<code class="font-mono text-xs">PK</code> / <code class="font-mono text-xs">FK</code>) e índices B-Tree específicos en las columnas de unión (<code class="font-mono text-xs">TEAM_NAME</code>, <code class="font-mono text-xs">PLAYER_ID</code>).</p>
+                            <p><strong>Resultado verificado:</strong> Se aceleró el tiempo de construcción del índice de caché en Informatica y se aseguró la eliminación en cascada.</p>
+                        </div>
+
+                        <!-- SQL Code Block -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 text-slate-300 rounded-t-md text-xs font-mono">
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="switchSqlTab('tab-ddl')" id="btn-tab-ddl" class="px-2 py-0.5 rounded bg-brand-700 text-white font-semibold hover:bg-brand-600 transition-colors">DDL (Esquema Optimizados)</button>
+                                    <button onclick="switchSqlTab('tab-dml')" id="btn-tab-dml" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">DML (Datos IPL + COMMIT)</button>
+                                    <button onclick="switchSqlTab('tab-targets')" id="btn-tab-targets" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Target DDLs</button>
+                                </div>
+                                <button onclick="copyActiveCode()" class="hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> Copiar
+                                </button>
+                            </div>
+
+                            <!-- TAB 1: DDL -->
+                            <pre id="code-ddl" class="sql-tab-content bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- 1. TABLA REFERENCIAL DE EQUIPOS (Lookup Table)
+-- ==========================================
+CREATE TABLE TEAM_INFO (
+    TEAM_NAME VARCHAR2(100) NOT NULL,
+    TEAM_CITY VARCHAR2(255) NOT NULL,
+    TEAM_COACH VARCHAR2(255) NOT NULL,
+    TEAM_FOUNDED_YEAR NUMBER(4),
+    CONSTRAINT PK_TEAM_INFO PRIMARY KEY (TEAM_NAME)
+);
+
+-- Índice B-Tree explícito en la ciudad para acelerar búsquedas
+CREATE INDEX IDX_TEAM_CITY ON TEAM_INFO(TEAM_CITY);
+
+-- ==========================================
+-- 2. TABLA MAESTRA DE JUGADORES (Source 1)
+-- ==========================================
+CREATE TABLE PLAYERS (
+    PLAYER_ID NUMBER NOT NULL,
+    PLAYER_NAME VARCHAR2(255) NOT NULL,
+    TEAM_NAME VARCHAR2(100) NOT NULL,
+    CONSTRAINT PK_PLAYERS PRIMARY KEY (PLAYER_ID)
+);
+
+-- Índice en la clave de unión relacional para acelerar la construcción de la caché
+CREATE INDEX IDX_PLAYERS_TEAM ON PLAYERS(TEAM_NAME);
+
+-- ==========================================
+-- 3. TABLA DE RENDIMIENTO EN PARTIDOS (Source 2)
+-- ==========================================
+CREATE TABLE MATCHES (
+    MATCH_ID NUMBER NOT NULL,
+    PLAYER_ID NUMBER NOT NULL,
+    MATCHES NUMBER DEFAULT 0 NOT NULL,
+    RUNS NUMBER DEFAULT 0 NOT NULL,
+    WICKETS NUMBER DEFAULT 0 NOT NULL,
+    CONSTRAINT PK_MATCHES PRIMARY KEY (MATCH_ID),
+    CONSTRAINT FK_MATCHES_PLAYERS FOREIGN KEY (PLAYER_ID) 
+        REFERENCES PLAYERS(PLAYER_ID) ON DELETE CASCADE
+);
+
+-- Índice en la Clave Foránea para optimizar el Joiner (JNRTRANS) por PLAYER_ID
+CREATE INDEX IDX_MATCHES_PLAYER_ID ON MATCHES(PLAYER_ID);</code></pre>
+
+                            <!-- TAB 2: DML -->
+                            <pre id="code-dml" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- CARGA DE DATOS DE PRUEBA (Masterclass Cricket)
+-- ==========================================
+
+-- 1. Insertar datos en TEAM_INFO (3 Equipos)
+-- Nota: 'GT' (Gujarat Titans) se omite intencionalmente para simular 'Not Found'
+INSERT INTO TEAM_INFO VALUES ('RCB', 'Bangalore', 'Coach A', 2008);
+INSERT INTO TEAM_INFO VALUES ('MI', 'Mumbai', 'Coach B', 2008);
+INSERT INTO TEAM_INFO VALUES ('CSK', 'Chennai', 'Coach C', 2008);
+
+-- 2. Insertar datos en PLAYERS (12 Jugadores)
+INSERT INTO PLAYERS VALUES (1, 'Virat Kohli', 'RCB');
+INSERT INTO PLAYERS VALUES (2, 'Rohit Sharma', 'MI');
+INSERT INTO PLAYERS VALUES (3, 'MS Dhoni', 'CSK');
+INSERT INTO PLAYERS VALUES (4, 'Shubman Gill', 'GT'); -- Sin coincidencia en TEAM_INFO
+INSERT INTO PLAYERS VALUES (5, 'Hardik Pandya', 'MI');
+INSERT INTO PLAYERS VALUES (6, 'Suryakumar Yadav', 'MI');
+INSERT INTO PLAYERS VALUES (7, 'Faf du Plessis', 'RCB');
+INSERT INTO PLAYERS VALUES (8, 'Glenn Maxwell', 'RCB');
+INSERT INTO PLAYERS VALUES (9, 'Ruturaj Gaikwad', 'CSK');
+INSERT INTO PLAYERS VALUES (10, 'Ravindra Jadeja', 'CSK');
+INSERT INTO PLAYERS VALUES (11, 'David Miller', 'GT'); -- Sin coincidencia en TEAM_INFO
+INSERT INTO PLAYERS VALUES (12, 'Mohammed Shami', 'GT'); -- Sin coincidencia en TEAM_INFO
+
+-- 3. Insertar datos en MATCHES
+INSERT INTO MATCHES VALUES (101, 1, 250, 12000, 4);
+INSERT INTO MATCHES VALUES (102, 2, 243, 10000, 8);
+INSERT INTO MATCHES VALUES (103, 3, 350, 10500, 1);
+INSERT INTO MATCHES VALUES (104, 4, 95, 3500, 0);
+INSERT INTO MATCHES VALUES (105, 5, 75, 3200, 55);
+INSERT INTO MATCHES VALUES (106, 6, 130, 4800, 10);
+INSERT INTO MATCHES VALUES (107, 7, 310, 4000, 2);
+INSERT INTO MATCHES VALUES (108, 8, 160, 3000, 15);
+INSERT INTO MATCHES VALUES (109, 9, 85, 2700, 0);
+INSERT INTO MATCHES VALUES (110, 10, 225, 2500, 205);
+INSERT INTO MATCHES VALUES (111, 11, 140, 2200, 0);
+INSERT INTO MATCHES VALUES (112, 12, 120, 2100, 180);
+
+-- IMPORTANTE: Confirmar la transacción para que Informatica Server
+-- pueda consultar los datos insertados desde su sesión de BD.
+COMMIT;</code></pre>
+
+                            <!-- TAB 3: TARGETS -->
+                            <pre id="code-targets" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- 1. TABLA DESTINO CONSOLIDADA (Relacional)
+-- ==========================================
+CREATE TABLE PLAYER_STATS_LOOKUP_DIM (
+    STAT_ID NUMBER GENERATED ALWAYS AS IDENTITY,
+    PLAYER_ID NUMBER NOT NULL,
+    PLAYER_NAME VARCHAR2(255) NOT NULL,
+    TEAM_NAME VARCHAR2(100) NOT NULL,
+    MATCH_ID NUMBER,
+    MATCHES NUMBER,
+    RUNS NUMBER,
+    WICKETS NUMBER,
+    TEAM_CITY VARCHAR2(255),
+    TEAM_COACH VARCHAR2(255),
+    LOOKUP_STATUS VARCHAR2(50) NOT NULL,
+    LOAD_DATE DATE DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT PK_PLAYER_STATS_LOOKUP_DIM PRIMARY KEY (STAT_ID)
+);
+
+CREATE INDEX IDX_TARGET_PLAYER_ID ON PLAYER_STATS_LOOKUP_DIM(PLAYER_ID);
+CREATE INDEX IDX_TARGET_LOOKUP_STATUS ON PLAYER_STATS_LOOKUP_DIM(LOOKUP_STATUS);
+
+-- ==========================================
+-- 2. TABLA DESTINO PARA LABORATORIO DE FLAT FILES
+-- ==========================================
+CREATE TABLE TCT_CRICKET_PLAYERS (
+    PLAYER_ID NUMBER NOT NULL,
+    PLAYER_NAME VARCHAR2(255) NOT NULL,
+    TEAM_NAME VARCHAR2(255),
+    MATCHES NUMBER,
+    RUNS NUMBER,
+    WICKETS NUMBER,
+    SALARY NUMBER,
+    LOOKUP_STATUS VARCHAR2(50),
+    CONSTRAINT PK_TCT_CRICKET_PLAYERS PRIMARY KEY (PLAYER_ID)
+);</code></pre>
+                        </div>
+
+                        <!-- Preview Drawer (Accessible on mobile and desktop) -->
+                        <div id="prev-1" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-2 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 03:04]</span>
+                                <span class="text-slate-400">Oracle SQL Developer</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-950 rounded border border-slate-800 space-y-1">
+                                <div class="text-emerald-400 font-semibold">> SELECT PLAYER_ID, PLAYER_NAME, TEAM_NAME FROM PLAYERS;</div>
+                                <div class="text-slate-300">12 rows retrieved. Players loaded: Virat Kohli (RCB), Rohit Sharma (MI), Shubman Gill (GT)...</div>
+                                <div class="text-amber-400 pt-1">> SELECT * FROM TEAM_INFO WHERE TEAM_NAME = 'GT';</div>
+                                <div class="text-rose-400">0 rows returned (no data found). Validates intentionally missing GT reference.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        2
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Configuración del Mapping en Informatica Designer
+                            </h3>
+                            <button onclick="togglePreview('prev-2')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 12:15]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Se requería unificar estadísticas de partidos con datos demográficos y evaluar la validez del equipo en una sola pasada.</p>
+                            <p><strong>Decisión técnica:</strong> Interconectar una Joiner Transformation (<code class="font-mono text-xs">JNRTRANS</code>) con un Connected Lookup (<code class="font-mono text-xs">LKPTRANS</code>) y una Expression Transformation (<code class="font-mono text-xs">EXPTRANS</code>).</p>
+                            <p><strong>Resultado verificado:</strong> Se generó una lógica limpia donde la evaluación del valor nulo asigna explícitamente la categoría de búsqueda.</p>
+                        </div>
+
+                        <!-- Technical logic box -->
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                            <div class="font-bold text-slate-800">Lógica de Evaluación en EXPTRANS:</div>
+                            <code class="block font-mono bg-white p-2 border border-slate-200 rounded text-brand-900 font-semibold">
+                                IIF(ISNULL(TEAM_CITY), 'Not Found', 'Found')
+                            </code>
+                            <p class="text-slate-600 text-[11px]">
+                                Si el puerto devuelto por el Lookup (<code class="font-mono">TEAM_CITY</code>) es nulo, se marca como 'Not Found'; de lo contrario, se asigna 'Found'.
+                            </p>
+                        </div>
+
+                        <div id="prev-2" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 12:15]</span>
+                                <span class="text-slate-400">PowerCenter Designer</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Mapeo e interconexión de los puertos de entrada y salida entre el Joiner, el Lookup de <code class="text-brand-300">TEAM_INFO</code> y la Expresión final.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        3
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Ejecución en Workflow Monitor y Confirmación de Carga
+                            </h3>
+                            <button onclick="togglePreview('prev-3')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 27:08]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Validar que la carga procesara correctamente los 16 registros y reflejara el estado esperado para los equipos no registrados.</p>
+                            <p><strong>Decisión técnica:</strong> Configurar el Target de la sesión en modo <code class="font-mono text-xs">Normal</code> con opción <code class="font-mono text-xs">Truncate Target Table</code> para pruebas repetibles.</p>
+                            <p><strong>Resultado verificado:</strong> Los jugadores de Gujarat Titans (GT) quedaron cargados con estado <code class="font-mono text-xs text-rose-700 bg-rose-50 px-1 rounded font-bold">Not Found</code> y valores de ciudad en <code class="font-mono text-xs">NULL</code>, mientras que los demás se registraron como <code class="font-mono text-xs text-emerald-700 bg-emerald-50 px-1 rounded font-bold">Found</code>.</p>
+                        </div>
+
+                        <!-- Data Viewer Table -->
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="w-full text-left text-xs font-mono">
+                                <thead class="bg-slate-900 text-white border-b border-slate-800">
+                                    <tr>
+                                        <th class="p-2.5">PLAYER_NAME</th>
+                                        <th class="p-2.5">TEAM</th>
+                                        <th class="p-2.5">MATCHES</th>
+                                        <th class="p-2.5">RUNS</th>
+                                        <th class="p-2.5">TEAM_CITY</th>
+                                        <th class="p-2.5">STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 bg-white text-slate-800">
+                                    <tr>
+                                        <td class="p-2.5 font-bold">Virat Kohli</td>
+                                        <td class="p-2.5">RCB</td>
+                                        <td class="p-2.5">250</td>
+                                        <td class="p-2.5">12000</td>
+                                        <td class="p-2.5 text-brand-700 font-semibold">Bangalore</td>
+                                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Found</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-bold">Rohit Sharma</td>
+                                        <td class="p-2.5">MI</td>
+                                        <td class="p-2.5">243</td>
+                                        <td class="p-2.5">10000</td>
+                                        <td class="p-2.5 text-brand-700 font-semibold">Mumbai</td>
+                                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Found</span></td>
+                                    </tr>
+                                    <tr class="bg-rose-50/60">
+                                        <td class="p-2.5 font-bold text-rose-900">Shubman Gill</td>
+                                        <td class="p-2.5 font-bold text-rose-900">GT</td>
+                                        <td class="p-2.5">95</td>
+                                        <td class="p-2.5">3500</td>
+                                        <td class="p-2.5 text-rose-600 italic">NULL</td>
+                                        <td class="p-2.5"><span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">Not Found</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="prev-3" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 27:08]</span>
+                                <span class="text-slate-400">Workflow Monitor</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Estado de la sesión: <span class="text-emerald-400 font-bold">SUCCEEDED</span>. Lectura de 16 registros desde el Source Qualifier y carga equivalente de 16 filas en la tabla dimensional de destino.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        4
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Pruebas de Caché, Políticas de Duplicados y Depuración
+                            </h3>
+                            <button onclick="togglePreview('prev-4')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 01:07:44]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Al probar comportamientos de caché estática vs dinámica e insertar filas duplicadas en la base de datos, la política de coincidencia múltiple predeterminada abortó la sesión por ambigüedad de claves.</p>
+                            <p><strong>Decisión técnica:</strong> Configurar la política de coincidencia múltiple (`First Value` / `Last Value` / `Report Error`) según el requerimiento de negocio y aplicar un script de depuración por <code class="font-mono text-xs">ROWID</code> antes de definir restricciones estrictas.</p>
+                            <p><strong>Resultado verificado:</strong> Se depuraron las filas duplicadas conservando el primer registro válido, permitiendo agregar la clave primaria y restaurar la ejecución continua.</p>
+                        </div>
+
+                        <!-- Summary grid of cache types -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                                <span class="font-bold text-slate-900 block">Static Cache (Estática)</span>
+                                <span class="text-slate-600 text-[11px]">Se carga 1 vez al iniciar la sesión. No captura cambios realizados en la BD relacional durante la ejecución.</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                                <span class="font-bold text-slate-900 block">Dynamic Cache (Dinámica)</span>
+                                <span class="text-slate-600 text-[11px]">Se actualiza dinámicamente en memoria con cada fila entrante. Ideal para CDC y dimensiones SCD Tipo 2.</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-xs text-slate-700 font-semibold">
+                                <span>Script de Limpieza Relacional por ROWID y Asignación de PK:</span>
+                                <button onclick="copyCode('code-rowid')" class="text-brand-700 hover:text-brand-800 transition-colors">
+                                    <i class="fa-regular fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                            <pre id="code-rowid" class="bg-slate-950 text-slate-200 p-3 rounded-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- Eliminación de duplicados dejando únicamente el primer registro por ROWID
+DELETE FROM TEAM_INFO T
+WHERE ROWID NOT IN (
+    SELECT MIN(ROWID)
+    FROM TEAM_INFO
+    GROUP BY TEAM_NAME
+);
+
+-- Asignación de restricción Primary Key para garantizar unicidad en la caché
+ALTER TABLE TEAM_INFO ADD CONSTRAINT PK_TEAM_INFO PRIMARY KEY (TEAM_NAME);
+
+COMMIT;</code></pre>
+                        </div>
+
+                        <div id="prev-4" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 01:07:44]</span>
+                                <span class="text-slate-400">Session Log & Multi-match</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Trace del log al seleccionar <code class="text-rose-400">Report Error</code>: <code class="text-rose-300">[ERROR] Multiple match found in lookup transformation LKP_TEAM_INFO.</code> Se prueba el comportamiento de protección ante ambigüedad de datos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        5
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Integración de Archivos Planos (Flat Files) y Troubleshooting de Rutas
+                            </h3>
+                            <button onclick="togglePreview('prev-5')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 01:58:23]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Al integrar el archivo <code class="font-mono text-xs">salaries.csv</code> mediante una Flat File Lookup, la sesión falló con el error <code class="font-mono text-xs">FR_3000 Error opening lookup source file</code> a pesar de existir en el directorio estándar de fuentes.</p>
+                            <p><strong>Decisión técnica:</strong> Comprender la arquitectura interna de Informatica Server: las transformaciones de búsqueda sobre archivos planos leen por defecto del directorio de cachés (<code class="font-mono text-xs">$PMCacheDir</code> o subdirectorio <code class="font-mono text-xs">LKPFILES</code>), no de <code class="font-mono text-xs">$PMSourceFileDir</code>.</p>
+                            <p><strong>Resultado verificado:</strong> Se reubicó físicamente <code class="font-mono text-xs">salaries.csv</code> a la carpeta de Lookup Files, se declaró la propiedad <code class="font-mono text-xs">Lookup source file name</code> = <code class="font-mono text-xs">salaries.csv</code> y el workflow finalizó con carga exitosa en <code class="font-mono text-xs">TCT_CRICKET_PLAYERS</code>.</p>
+                        </div>
+
+                        <!-- Flat file structure samples -->
+                        <div class="bg-slate-950 p-3 rounded-md font-mono text-xs text-slate-200 space-y-2">
+                            <div class="text-brand-400 font-bold border-b border-slate-800 pb-1">Estructura del Archivo Lookup: salaries.csv</div>
+                            <div class="text-slate-300">
+                                PLAYER_ID,SALARY<br>
+                                1,19000000<br>
+                                2,16000000<br>
+                                3,15000000<br>
+                                4,12000000<br>
+                                11,8500000
+                            </div>
+                        </div>
+
+                        <div id="prev-5" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 01:58:23]</span>
+                                <span class="text-slate-400">Path Troubleshooting Resolution</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Mensaje de solución en log: <code class="text-emerald-400">Successfully opened lookup file [$PMCacheDir/salaries.csv]. 12 rows read into index cache.</code>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ACT 4: LEARNINGS & OUTCOMES -->
+        <section id="acto-4" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">04</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 4: Aprendizajes Clave y Conclusiones del Proyecto</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-4 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    Este caso de estudio práctico me permitió consolidar habilidades críticas en el diseño e implementación de procesos ETL de nivel profesional. Los tres aprendizajes más relevantes fueron:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1">
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-bold text-slate-900">1. Impacto de la Indexación</div>
+                        <p class="text-slate-600">
+                            Definir claves primarias e índices B-Tree en la base de datos relacional reduce drásticamente el tiempo de construcción de archivos de caché en Informatica.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-bold text-slate-900">2. Manejo de Caché en Memoria</div>
+                        <p class="text-slate-600">
+                            Entender las diferencias entre Static y Dynamic Cache es fundamental para elegir la estrategia adecuada en cargas incrementales o dimensiones SCD.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-bold text-slate-900">3. Arquitectura del Servidor</div>
+                        <p class="text-slate-600">
+                            Diferenciar las rutas de trabajo del servidor (<code class="font-mono text-xs">$PMSourceFileDir</code> vs <code class="font-mono text-xs">$PMCacheDir</code>) evita errores de ejecución al trabajar con Flat Files.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Simple Footer -->
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+                Caso de Estudio de Ingeniería de Datos &copy; 2026 • Kevin Mizael Gómez Uriarte
+            </div>
+            <a href="https://www.youtube.com/watch?v=wxwjpPrya0I" target="_blank" rel="noopener noreferrer" class="hover:text-brand-700 transition-colors flex items-center gap-1 font-medium">
+                <i class="fa-brands fa-youtube text-red-600"></i> Basado en Masterclass Lección 19
+            </a>
+        </div>
+    </footer>
+
+    <!-- Interactive Logic -->
+    <script>
+        function switchSqlTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.sql-tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Reset tab button states
+            const buttons = ['btn-tab-ddl', 'btn-tab-dml', 'btn-tab-targets'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('bg-brand-700', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            // Show target tab
+            const targetEl = document.getElementById(tabId.replace('btn-', 'code-').replace('tab-', 'code-'));
+            if (targetEl) targetEl.classList.remove('hidden');
+
+            // Highlight active button
+            const activeBtn = document.getElementById(tabId);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+                activeBtn.classList.add('bg-brand-700', 'text-white');
+            }
+        }
+
+        function copyActiveCode() {
+            const visibleTab = document.querySelector('.sql-tab-content:not(.hidden)');
+            if (visibleTab) {
+                copyCode(visibleTab.id);
+            }
+        }
+
+        function togglePreview(id) {
+            const drawer = document.getElementById(id);
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function copyCode(elementId) {
+            const codeEl = document.getElementById(elementId);
+            if (!codeEl) return;
+            const textToCopy = codeEl.innerText;
+            
+            // Clipboard API with fallback
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => showToast('¡Código copiado al portapapeles!'))
+                    .catch(() => fallbackCopy(textToCopy));
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('¡Código copiado al portapapeles!');
+            } catch (err) {
+                showToast('Error al copiar el texto');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(msg) {
+            const existingToast = document.getElementById('active-toast');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'active-toast';
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg border border-slate-700 transition-all duration-300';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2200);
+        }
+    </script>
+
+</body>
+</html>

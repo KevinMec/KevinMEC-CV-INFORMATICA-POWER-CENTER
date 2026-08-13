@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caso de Estudio Técnico | Pipeline ETL Multifuente con UNION, Depuración de Duplicados & RANK</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0f0fe',
+                            200: '#bae0fd',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#030712',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Tarjetas de Caso de Estudio Limpias */
+        .case-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+            border-radius: 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .case-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Línea narrativa conectora */
+        .story-timeline-line {
+            position: absolute;
+            left: 19px;
+            top: 36px;
+            bottom: 20px;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Estilos de impresión para PDF */
+        @media print {
+            header, footer, .no-print, nav { display: none !important; }
+            body { background: white; color: black; }
+            .case-card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+            .preview-drawer { display: block !important; }
+        }
+    </style>
+</head>
+<body class="custom-scrollbar min-h-screen flex flex-col justify-between selection:bg-brand-600 selection:text-white">
+
+    <!-- Encabezado de Navegación -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <span class="text-sm font-bold text-slate-900 tracking-tight">Kevin Mizael Gómez Uriarte</span>
+                    <span class="text-xs text-slate-500 block hidden sm:block">Estudio de Caso Técnico • Data Engineering (Lección 18)</span>
+                </div>
+            </div>
+
+            <!-- Enlaces Directos -->
+            <nav class="hidden md:flex items-center space-x-5 text-xs font-medium text-slate-600">
+                <a href="#acto-1" class="hover:text-brand-700 transition-colors">1. El Problema</a>
+                <a href="#acto-2" class="hover:text-brand-700 transition-colors">2. Arquitectura</a>
+                <a href="#acto-3" class="hover:text-brand-700 transition-colors">3. Procedimiento</a>
+                <a href="#acto-4" class="hover:text-brand-700 transition-colors">4. Aprendizajes</a>
+            </nav>
+
+            <!-- Acciones -->
+            <div class="flex items-center space-x-2">
+                <a href="https://www.youtube.com/watch?v=CjYHtmlya2c" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+                    <i class="fa-brands fa-youtube text-red-600"></i>
+                    <span class="hidden sm:inline">Ver Masterclass</span>
+                </a>
+                <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-700 hover:bg-brand-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Guardar PDF</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Contenedor Principal de Contenido -->
+    <main class="max-w-4xl mx-auto px-4 py-10 space-y-12 flex-grow">
+
+        <!-- Banner Principal -->
+        <section class="space-y-4 text-left border-b border-slate-200 pb-8">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium font-mono">
+                <i class="fa-solid fa-database text-brand-700"></i> Informatica PowerCenter + Oracle SQL Set Operators
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                Integración ETL Multifuente, Depuración de Registros Repetidos y Selección de Top-N Salarios
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl">
+                Un análisis práctico en primera persona sobre cómo consolidé plantillas internacionales de cricket desde orígenes relacionales (Oracle SQL) y archivos planos (CSV), depurando registros duplicados mediante Sorter Distinct y jerarquizando el Top 5 de salarios globales con Rank Transformation.
+            </p>
+        </section>
+
+        <!-- ACTO 1: NARRACIÓN DEL PROBLEMA -->
+        <section id="acto-1" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">01</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 1: El Diagnóstico Inicial y la Fragmentación Multifuente</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    En este escenario, el desafío de ingeniería de datos consistió en consolidar los registros globales de jugadores de cricket distribuidos en cuatro fuentes de datos independientes y heterogéneas: tres tablas en Oracle SQL (<code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">IND_PLAYERS</code>, <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">AUS_PLAYERS</code>, <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">ENG_PLAYERS</code>) y un archivo CSV delimitado por comas (<code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">OTHER_PLAYERS.csv</code>).
+                </p>
+                <p>
+                    Al inspeccionar los datos iniciales, detecté duplicidad deliberada entre las ligas (por ejemplo, <strong>Hardik Pandya</strong> figuraba simultáneamente en India y Australia, mientras que <strong>Pat Cummins</strong> aparecía en Australia e Inglaterra). Adicionalmente, el requerimiento exigía identificar a los 5 jugadores con mayor salario global sin que la presencia de filas repetidas distorsionara el ranking.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-cubes-stacked text-amber-600"></i> Heterogeneidad de Fuentes
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Necesidad de unificar 3 tablas relacionales por país y 1 archivo CSV plano dentro de una sola estructura de destino.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-clone text-slate-600"></i> Duplicidad Cross-System
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Jugadores registrados en múltiples ligas regionales que requerían ser unificados para evitar duplicar el cálculo salarial.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div class="font-semibold text-slate-900 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-slate-600"></i> Ranking Top-N Eficiente
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            Filtro jerárquico para seleccionar exactamente a los 5 atletas mejor remunerados tras realizar la eliminación de duplicados.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Esta situación me llevó a preguntarme:</strong> ¿Cómo puedo consolidar eficientemente pipelines heterogéneos en Informatica PowerCenter, depurar registros repetidos sin impactar el rendimiento y calcular un ranking Top 5 preciso?
+                </div>
+            </div>
+        </section>
+
+        <!-- ACTO 2: ARQUITECTURA Y ESTRATEGIA -->
+        <section id="acto-2" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">02</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 2: Definición de la Solución y Diagrama de Flujo</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    Para abordar la integración, diseñé una solución en dos etapas: en la primera, analicé el comportamiento de los Set Operators de SQL (<code class="font-mono text-xs">UNION</code>, <code class="font-mono text-xs">UNION ALL</code>, <code class="font-mono text-xs">INTERSECT</code>, <code class="font-mono text-xs">MINUS</code>) frente a los Joins horizontales; en la segunda, implementé un pipeline ETL en Informatica PowerCenter combinando <code class="font-mono text-xs">UNION Transformation</code>, <code class="font-mono text-xs">Sorter Transformation (Distinct)</code> y <code class="font-mono text-xs">Rank Transformation</code>.
+                </p>
+
+                <!-- DIAGRAMA SVG REAL -->
+                <div class="p-4 rounded-xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                        <span>Diagrama de Flujo del Pipeline ETL (Lección 18)</span>
+                        <span>4 Fuentes → UNION → Sorter → Rank → Target</span>
+                    </div>
+
+                    <div class="w-full overflow-x-auto py-2">
+                        <svg class="w-full min-w-[650px]" viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Líneas de cuadrícula de fondo -->
+                            <path d="M 0 90 L 720 90" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+                            
+                            <!-- Nodo 1: IND_PLAYERS -->
+                            <rect x="10" y="10" width="115" height="32" rx="5" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="67" y="26" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">IND_PLAYERS (Oracle)</text>
+
+                            <!-- Nodo 2: AUS_PLAYERS -->
+                            <rect x="10" y="50" width="115" height="32" rx="5" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="67" y="66" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">AUS_PLAYERS (Oracle)</text>
+
+                            <!-- Nodo 3: ENG_PLAYERS -->
+                            <rect x="10" y="90" width="115" height="32" rx="5" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="67" y="106" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="bold">ENG_PLAYERS (Oracle)</text>
+
+                            <!-- Nodo 4: OTHER_PLAYERS.csv -->
+                            <rect x="10" y="130" width="115" height="32" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+                            <text x="67" y="146" text-anchor="middle" fill="#f8fafc" font-size="8.5" font-weight="bold">OTHER_PLAYERS (CSV)</text>
+
+                            <!-- Flechas conectoras hacia UNION -->
+                            <path d="M 125 26 L 165 26 L 165 80 L 180 80" stroke="#94a3b8" stroke-width="1.2" fill="none"/>
+                            <path d="M 125 66 L 155 66 L 155 85 L 180 85" stroke="#94a3b8" stroke-width="1.2" fill="none"/>
+                            <path d="M 125 106 L 155 106 L 155 95 L 180 95" stroke="#94a3b8" stroke-width="1.2" fill="none"/>
+                            <path d="M 125 146 L 165 146 L 165 100 L 180 100" stroke="#94a3b8" stroke-width="1.2" fill="none"/>
+
+                            <!-- Nodo 5: UNIONTRANS -->
+                            <rect x="180" y="68" width="110" height="44" rx="6" fill="#1e293b" stroke="#2563eb" stroke-width="1.5"/>
+                            <text x="235" y="86" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">UNIONTRANS</text>
+                            <text x="235" y="100" text-anchor="middle" fill="#94a3b8" font-size="8">Active (SQL UNION ALL)</text>
+
+                            <!-- Flecha hacia Sorter -->
+                            <path d="M 290 90 L 330 90" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Nodo 6: SORTTRANS -->
+                            <rect x="330" y="68" width="110" height="44" rx="6" fill="#1e293b" stroke="#eab308" stroke-width="1.5"/>
+                            <text x="385" y="86" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">SORTTRANS</text>
+                            <text x="385" y="100" text-anchor="middle" fill="#fef08a" font-size="8">Select Distinct = TRUE</text>
+
+                            <!-- Flecha hacia Rank -->
+                            <path d="M 440 90 L 480 90" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Nodo 7: RANKTRANS -->
+                            <rect x="480" y="68" width="110" height="44" rx="6" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+                            <text x="535" y="86" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="bold">RANKTRANS</text>
+                            <text x="535" y="100" text-anchor="middle" fill="#e9d5ff" font-size="8">Top 5 by SALARY</text>
+
+                            <!-- Flecha hacia Target -->
+                            <path d="M 590 90 L 625 90" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+
+                            <!-- Nodo 8: TARGET -->
+                            <rect x="625" y="68" width="85" height="44" rx="6" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1.5"/>
+                            <text x="667" y="86" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">TARGET</text>
+                            <text x="667" y="100" text-anchor="middle" fill="#bae0fd" font-size="7.5">CRICKET_PLAYERS_DIM</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <p>
+                    Comprender el comportamiento de la <strong>UNION Transformation</strong> en Informatica es vital: a diferencia de la sentencia `UNION` en SQL, la transformación en Informatica <strong>no elimina registros duplicados</strong> (equivale a un `UNION ALL` en SQL) ni ordena los datos. Por esta razón, se encadena explícitamente con una <strong>Sorter Transformation</strong> configurada con <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">Select Distinct = True</code> antes de calcular las jerarquías de salarios con el módulo <strong>Rank</strong>.
+                </p>
+
+                <div class="p-3 bg-brand-50 border-l-4 border-brand-600 rounded-r-lg text-xs text-brand-900 font-medium">
+                    <i class="fa-solid fa-arrow-right mr-1.5"></i> <strong>Con el diseño trazado:</strong> El siguiente paso fue ejecutar las pruebas en Oracle SQL e implementar el pipeline paso a paso en Informatica PowerCenter.
+                </div>
+            </div>
+        </section>
+
+        <!-- ACTO 3: PROCEDIMIENTO PASO A PASO -->
+        <section id="acto-3" class="space-y-8 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">03</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 3: Ejecución Técnica Paso a Paso</h2>
+            </div>
+
+            <div class="relative space-y-8 pl-6 sm:pl-8">
+                <div class="story-timeline-line"></div>
+
+                <!-- PASO 1 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        1
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Preparación del Esquema Relacional y Pruebas con Set Operators en Oracle SQL
+                            </h3>
+                            <button onclick="togglePreview('prev-1')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 02:15]</span>
+                            </button>
+                        </div>
+
+                        <!-- Explicación causal -->
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Antes de construir el pipeline en Informatica, era indispensable verificar el comportamiento de la consolidación vertical mediante Set Operators en la base de datos y comprobar cómo gestionan los registros duplicados.</p>
+                            <p><strong>Decisión técnica:</strong> Crear las tablas de las ligas regionalizadas (<code class="font-mono text-xs">IND_PLAYERS</code>, <code class="font-mono text-xs">AUS_PLAYERS</code>, <code class="font-mono text-xs">ENG_PLAYERS</code>) y ejecutar consultas comparativas entre <code class="font-mono text-xs">UNION</code> (filtra duplicados y ordena), <code class="font-mono text-xs">UNION ALL</code> (rápido, conserva duplicados), <code class="font-mono text-xs">INTERSECT</code> (registros comunes) y <code class="font-mono text-xs">MINUS</code> / Anti-Join (diferencias entre conjuntos).</p>
+                            <p><strong>Resultado verificado:</strong> Se constató que <code class="font-mono text-xs">UNION ALL</code> es la operación más veloz porque no realiza ordenamientos ni depuraciones internas de registros repetidos en el motor relacional.</p>
+                        </div>
+
+                        <!-- Bloque de código SQL con Pestañas -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 text-slate-300 rounded-t-md text-xs font-mono">
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="switchSqlTab('tab-ddl')" id="btn-tab-ddl" class="px-2 py-0.5 rounded bg-brand-700 text-white font-semibold hover:bg-brand-600 transition-colors">DDL & DML Iniciales</button>
+                                    <button onclick="switchSqlTab('tab-set-ops')" id="btn-tab-set-ops" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Set Operators SQL</button>
+                                    <button onclick="switchSqlTab('tab-targets')" id="btn-tab-targets" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Target DDLs</button>
+                                </div>
+                                <button onclick="copyActiveCode()" class="hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fa-regular fa-copy"></i> Copiar
+                                </button>
+                            </div>
+
+                            <!-- PESTAÑA 1: DDL & DML -->
+                            <pre id="code-ddl" class="sql-tab-content bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- 1. ESTRUCTURAS DE FUENTE (Oracle SQL)
+-- ==========================================
+CREATE TABLE IND_PLAYERS (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER
+);
+
+CREATE TABLE AUS_PLAYERS (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER
+);
+
+CREATE TABLE ENG_PLAYERS (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER
+);
+
+-- ==========================================
+-- 2. INSERCIÓN DE DATOS CON REGISTROS DUPLICADOS
+-- ==========================================
+-- India
+INSERT INTO IND_PLAYERS VALUES (1, 'Virat Kohli', 'Batsman', 25000000);
+INSERT INTO IND_PLAYERS VALUES (2, 'Rohit Sharma', 'Batsman', 23000000);
+INSERT INTO IND_PLAYERS VALUES (3, 'Hardik Pandya', 'All-Rounder', 18000000);
+
+-- Australia (contiene a Hardik Pandya duplicado)
+INSERT INTO AUS_PLAYERS VALUES (3, 'Hardik Pandya', 'All-Rounder', 18000000);
+INSERT INTO AUS_PLAYERS VALUES (4, 'David Warner', 'Batsman', 20000000);
+INSERT INTO AUS_PLAYERS VALUES (5, 'Pat Cummins', 'Bowler', 22000000);
+
+-- Inglaterra (contiene a Pat Cummins duplicado)
+INSERT INTO ENG_PLAYERS VALUES (5, 'Pat Cummins', 'Bowler', 22000000);
+INSERT INTO ENG_PLAYERS VALUES (6, 'Jos Buttler', 'Wicket-Keeper', 15000000);
+INSERT INTO ENG_PLAYERS VALUES (7, 'Ben Stokes', 'All-Rounder', 21000000);
+
+COMMIT;</code></pre>
+
+                            <!-- PESTAÑA 2: Set Operators -->
+                            <pre id="code-set-ops" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- DEMOSTRACIÓN DE SET OPERATORS VS ANTI/SEMI JOINS
+-- ==========================================
+
+-- 1. UNION (Combina y elimina filas repetidas mediante Sort + Distinct)
+SELECT PLAYER_ID, PLAYER_NAME, ROLE, SALARY FROM IND_PLAYERS
+UNION
+SELECT PLAYER_ID, PLAYER_NAME, ROLE, SALARY FROM AUS_PLAYERS;
+
+-- 2. UNION ALL (Sin ordenamiento ni eliminación de duplicados - Más Rápido)
+SELECT PLAYER_ID, PLAYER_NAME, ROLE, SALARY FROM IND_PLAYERS
+UNION ALL
+SELECT PLAYER_ID, PLAYER_NAME, ROLE, SALARY FROM AUS_PLAYERS;
+
+-- 3. INTERSECT (Devuelve únicamente registros comunes entre ambas tablas)
+SELECT PLAYER_NAME FROM IND_PLAYERS
+INTERSECT
+SELECT PLAYER_NAME FROM AUS_PLAYERS; -- Resultado: Hardik Pandya
+
+-- 4. MINUS (Registros de la 1ra consulta que NO existen en la 2da)
+SELECT PLAYER_NAME FROM AUS_PLAYERS
+MINUS
+SELECT PLAYER_NAME FROM IND_PLAYERS; -- Resultado: David Warner, Pat Cummins
+
+-- 5. ANTI-JOIN EQUIVALENTE A MINUS (NOT EXISTS)
+SELECT * FROM IND_PLAYERS I
+WHERE NOT EXISTS (
+    SELECT 1 FROM AUS_PLAYERS A WHERE A.PLAYER_ID = I.PLAYER_ID
+);
+
+-- 6. SEMI-JOIN EQUIVALENTE A INTERSECT (EXISTS)
+SELECT * FROM IND_PLAYERS I
+WHERE EXISTS (
+    SELECT 1 FROM AUS_PLAYERS A WHERE A.PLAYER_ID = I.PLAYER_ID
+);</code></pre>
+
+                            <!-- PESTAÑA 3: TARGETS -->
+                            <pre id="code-targets" class="sql-tab-content hidden bg-slate-950 text-slate-200 p-3 rounded-b-md font-mono text-xs overflow-x-auto custom-scrollbar"><code>-- ==========================================
+-- TABLA DESTINO CONSOLIDADA
+-- ==========================================
+CREATE TABLE CRICKET_PLAYERS_DIM (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER,
+    COUNTRY_SOURCE VARCHAR2(50),
+    CONSTRAINT PK_CRICKET_PLAYERS_DIM PRIMARY KEY (PLAYER_ID)
+);
+
+-- Tablas auxiliares para reportes específicos
+CREATE TABLE COMMON_IND_AUS_PLAYERS (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER
+);
+
+CREATE TABLE NON_IND_PLAYERS (
+    PLAYER_ID NUMBER,
+    PLAYER_NAME VARCHAR2(100),
+    ROLE VARCHAR2(50),
+    SALARY NUMBER,
+    COUNTRY_SOURCE VARCHAR2(50)
+);</code></pre>
+                        </div>
+
+                        <!-- Gaveta de vista previa -->
+                        <div id="prev-1" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-2 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 02:15]</span>
+                                <span class="text-slate-400">Oracle SQL Developer - Set Operators</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-950 rounded border border-slate-800 space-y-1">
+                                <div class="text-emerald-400 font-semibold">> SELECT PLAYER_NAME FROM IND_PLAYERS UNION SELECT PLAYER_NAME FROM AUS_PLAYERS;</div>
+                                <div class="text-slate-300">5 filas devueltas (Hardik Pandya aparece 1 sola vez).</div>
+                                <div class="text-amber-400 pt-1">> SELECT PLAYER_NAME FROM IND_PLAYERS UNION ALL SELECT PLAYER_NAME FROM AUS_PLAYERS;</div>
+                                <div class="text-slate-300">6 filas devueltas (Hardik Pandya aparece 2 veces).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 2 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        2
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Integración Multifuente con UNION Transformation en Informatica
+                            </h3>
+                            <button onclick="togglePreview('prev-2')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 18:40]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Unificar las tres tablas de Oracle y el archivo plano <code class="font-mono text-xs">OTHER_PLAYERS.csv</code> en un único pipeline sin crear flujos paralelos independientes hacia el destino.</p>
+                            <p><strong>Decisión técnica:</strong> Crear una <strong>UNION Transformation</strong> (transformación activa y conectada) en Informatica Designer. Definir 4 grupos de entrada (<code class="font-mono text-xs">IND</code>, <code class="font-mono text-xs">AUS</code>, <code class="font-mono text-xs">ENG</code>, <code class="font-mono text-xs">OTHERS</code>) que convergen en un único grupo de salida.</p>
+                            <p><strong>Reglas estrictas de puerto:</strong> Todos los puertos de todos los grupos deben coincidir exactamente en nombre, tipo de dato, precisión y orden.</p>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1.5">
+                            <div class="font-bold text-slate-900">Características Clave de UNION Transformation en Informatica:</div>
+                            <ul class="list-disc list-inside text-slate-600 space-y-0.5">
+                                <li><strong>Es una Transformación Activa:</strong> Aunque recombina datos, el número de filas de salida cambia frente a cada flujo individual de entrada.</li>
+                                <li><strong>Equivale a SQL UNION ALL:</strong> Conserva todas las filas entrantes incluyendo duplicados. <em>No remueve registros repetidos ni ordena por sí sola</em>.</li>
+                                <li><strong>Un solo grupo de salida:</strong> Admite múltiples Input Groups pero únicamente 1 Output Group.</li>
+                            </ul>
+                        </div>
+
+                        <div id="prev-2" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 18:40]</span>
+                                <span class="text-slate-400">PowerCenter Designer - UNION TR</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Creación de los grupos de entrada en las propiedades de la UNION Transformation e interconexión de puertos desde las Source Qualifiers de <code class="text-brand-300">IND_PLAYERS</code>, <code class="text-brand-300">AUS_PLAYERS</code>, <code class="text-brand-300">ENG_PLAYERS</code> y el Flat File <code class="text-brand-300">OTHER_PLAYERS.csv</code>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 3 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        3
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Depuración de Registros Repetidos (Deduplication) con Sorter Transformation (`Select Distinct = True`)
+                            </h3>
+                            <button onclick="togglePreview('prev-3')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 24:10]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Dado que la UNION Transformation conserva las filas duplicadas provistas por las diferentes ligas (12 registros en total para 10 jugadores únicos), se necesitaba filtrar y depurar las filas repetidas antes de calcular el ranking salarial.</p>
+                            <p><strong>Decisión técnica:</strong> Conectar la salida de la UNION Transformation hacia una <strong>Sorter Transformation</strong> y activar la propiedad <code class="font-mono text-xs">Select Distinct = TRUE</code>.</p>
+                            <p><strong>Justificación técnica:</strong> Entre las 4 alternativas para limpiar duplicados en Informatica (SQ Distinct, SQL Override, Aggregator Group By y Sorter Distinct), **Sorter Distinct** es la solución técnica recomendada cuando se integran fuentes heterogéneas que incluyen archivos planos (Flat Files).</p>
+                            <p><strong>Criterio de comparación:</strong> <code class="font-mono text-xs">Select Distinct = TRUE</code> no compara una sola columna: ordena y evalúa la totalidad del conjunto de puertos definidos como *Sort Key*. Dos filas se descartan como duplicadas únicamente si coinciden en la totalidad de esas columnas seleccionadas.</p>
+                        </div>
+
+                        <!-- Ejemplo visual Antes/Después -->
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                            <div class="font-bold text-slate-900">Ejemplo práctico de depuración en el flujo:</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="p-2.5 bg-white border border-slate-200 rounded space-y-1">
+                                    <div class="text-[10px] font-mono font-bold text-slate-500 uppercase">Antes (salida de UNIONTRANS — 12 filas)</div>
+                                    <div class="font-mono text-[11px] text-slate-700">Hardik Pandya · <span class="text-slate-400">IND</span></div>
+                                    <div class="font-mono text-[11px] text-rose-600">Hardik Pandya · <span class="text-slate-400">AUS</span> ← fila repetida</div>
+                                    <div class="font-mono text-[11px] text-slate-700">Pat Cummins · <span class="text-slate-400">AUS</span></div>
+                                    <div class="font-mono text-[11px] text-rose-600">Pat Cummins · <span class="text-slate-400">ENG</span> ← fila repetida</div>
+                                </div>
+                                <div class="p-2.5 bg-white border border-slate-200 rounded space-y-1">
+                                    <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase">Después (salida de SORTTRANS — 10 filas)</div>
+                                    <div class="font-mono text-[11px] text-emerald-700">Hardik Pandya · 1 sola fila retenida</div>
+                                    <div class="font-mono text-[11px] text-emerald-700">Pat Cummins · 1 sola fila retenida</div>
+                                    <div class="font-mono text-[11px] text-slate-500">+ 8 jugadores únicos adicionales</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla comparativa de los 4 métodos de filtrado -->
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-900 text-white font-mono">
+                                    <tr>
+                                        <th class="p-2">Técnica de Filtrado</th>
+                                        <th class="p-2">Soporta Flat Files</th>
+                                        <th class="p-2">Ubicación en Pipeline</th>
+                                        <th class="p-2">Evaluación y Recomendación</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 bg-white text-slate-700">
+                                    <tr>
+                                        <td class="p-2 font-bold font-mono">Source Qualifier Distinct</td>
+                                        <td class="p-2 text-rose-600">No (Solo BD Relacional)</td>
+                                        <td class="p-2">Al inicio (Origen)</td>
+                                        <td class="p-2">Limitado a 1 solo origen relacional individual.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 font-bold font-mono">SQL Override (SELECT DISTINCT)</td>
+                                        <td class="p-2 text-rose-600">No (Solo BD Relacional)</td>
+                                        <td class="p-2">Al inicio (Origen)</td>
+                                        <td class="p-2">Requiere modificar SQL por fuente; no sirve tras la UNION.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 font-bold font-mono">Aggregator (Group By All)</td>
+                                        <td class="p-2 text-emerald-600">Sí</td>
+                                        <td class="p-2">En cualquier punto</td>
+                                        <td class="p-2">Funciona pero consume más memoria en volúmenes altos.</td>
+                                    </tr>
+                                    <tr class="bg-brand-50/70 font-semibold text-brand-900">
+                                        <td class="p-2 font-mono">Sorter Transformation (Distinct)</td>
+                                        <td class="p-2 text-emerald-700">Sí</td>
+                                        <td class="p-2">Posterior a UNION TR</td>
+                                        <td class="p-2">✔ **Método Preferido**: Procesa fuentes mixtas y ordena los registros.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="prev-3" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 24:10]</span>
+                                <span class="text-slate-400">PowerCenter Designer - Sorter TR</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Habilitación de la casilla <code class="text-brand-300">Select Distinct = TRUE</code> en las propiedades de la Sorter Transformation para descartar las filas repetidas de Hardik Pandya y Pat Cummins.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 4 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        4
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Extracción del Top 5 de Salarios con Rank Transformation (`RANKTRANS`)
+                            </h3>
+                            <button onclick="togglePreview('prev-4')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 28:50]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> Una vez depurada la lista completa sin filas repetidas, se requería filtrar automáticamente únicamente a los 5 salarios más altos de toda la disciplina deportiva.</p>
+                            <p><strong>Decisión técnica:</strong> Conectar la Sorter Transformation hacia una <strong>Rank Transformation</strong> (Transformación activa y conectada). Marcar la columna <code class="font-mono text-xs">SALARY</code> como el puerto de Rank, seleccionar la propiedad <code class="font-mono text-xs">Top</code> y definir <code class="font-mono text-xs">Number of Ranks = 5</code>.</p>
+                            <p><strong>Gestión de memoria interna:</strong> La Rank Transformation utiliza dos archivos de caché dedicados: **Rank Index Cache** (almacena el puerto de ordenamiento `SALARY`) y **Rank Data Cache** (almacena el resto de los atributos del registro).</p>
+                        </div>
+
+                        <!-- Cuadro Técnico: RANK vs DENSE_RANK -->
+                        <div class="p-3 bg-slate-950 text-slate-200 rounded-lg text-xs space-y-2 border border-slate-800">
+                            <div class="font-bold text-brand-400 font-mono">Diferencia Clave: RANK vs DENSE_RANK en Informatica & SQL</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-mono">
+                                <div class="p-2 bg-slate-900 rounded border border-slate-800 space-y-1">
+                                    <span class="text-amber-300 font-bold">RANK (Default):</span>
+                                    <p class="text-slate-300">Si hay un empate en el puesto 1 (ej. dos salarios idénticos de $25M), asigna jerarquías: <code class="text-amber-200">1, 1, 3</code> (omite el puesto 2 basándose en el número de fila).</p>
+                                </div>
+                                <div class="p-2 bg-slate-900 rounded border border-slate-800 space-y-1">
+                                    <span class="text-emerald-300 font-bold">DENSE_RANK:</span>
+                                    <p class="text-slate-300">No omite números consecutivos ante empates en los datos: asigna jerarquías <code class="text-emerald-200">1, 1, 2, 3</code> garantizando la secuencia numérica estricta.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="prev-4" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 28:50]</span>
+                                <span class="text-slate-400">PowerCenter Designer - Rank TR</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Configuración del puerto de Rank en <code class="text-brand-300">SALARY</code>, selección del tipo <code class="text-brand-300">Top</code> y generación automática del puerto <code class="text-emerald-400">RankIndex</code> hacia la tabla destino.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 5 -->
+                <div class="relative space-y-3">
+                    <div class="absolute -left-6 sm:-left-8 top-0 w-6 h-6 rounded-full bg-brand-700 text-white font-mono text-xs font-bold flex items-center justify-center">
+                        5
+                    </div>
+
+                    <div class="case-card p-5 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Ejecución en Workflow Monitor, Troubleshooting y Carga Final
+                            </h3>
+                            <button onclick="togglePreview('prev-5')" class="no-print text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-circle-play text-brand-600"></i>
+                                <span>Ver Referencia [Min 33:15]</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600">
+                            <p><strong>El problema:</strong> En la primera ejecución, la fuente del Flat File <code class="font-mono text-xs">OTHER_PLAYERS.csv</code> no cargó registros debido a que no se declaró la extensión exacta del archivo en las propiedades del Session Task Developer.</p>
+                            <p><strong>Decisión técnica:</strong> Abrir las propiedades de la sesión en Workflow Manager, corregir la propiedad <code class="font-mono text-xs">Source file name</code> a <code class="font-mono text-xs">OTHER_PLAYERS.csv</code> y ejecutar nuevamente el workflow <code class="font-mono text-xs">wf_m_TOP_SALARIES</code>.</p>
+                            <p><strong>Resultado verificado:</strong> Se leyeron 12 filas totales entre las 4 fuentes, la Sorter Transformation descartó las 2 filas duplicadas dejando 10 registros únicos, y la Rank Transformation cargó exactamente los 5 mejores salarios a la tabla dimensional.</p>
+                        </div>
+
+                        <!-- Tabla visual de los Top 5 Salarios Cargados -->
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="w-full text-left text-xs font-mono">
+                                <thead class="bg-slate-900 text-white border-b border-slate-800">
+                                    <tr>
+                                        <th class="p-2.5">RANK_INDEX</th>
+                                        <th class="p-2.5">PLAYER_NAME</th>
+                                        <th class="p-2.5">ROLE</th>
+                                        <th class="p-2.5">SALARY (INR)</th>
+                                        <th class="p-2.5">ORIGEN</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 bg-white text-slate-800">
+                                    <tr class="bg-amber-50/50">
+                                        <td class="p-2.5 font-bold text-amber-700">#1</td>
+                                        <td class="p-2.5 font-bold">Virat Kohli</td>
+                                        <td class="p-2.5">Batsman</td>
+                                        <td class="p-2.5 text-brand-700 font-bold">₹ 25,000,000</td>
+                                        <td class="p-2.5">IND_PLAYERS</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-bold text-slate-600">#2</td>
+                                        <td class="p-2.5 font-bold">Rashid Khan</td>
+                                        <td class="p-2.5">Bowler</td>
+                                        <td class="p-2.5 text-brand-700 font-bold">₹ 24,000,000</td>
+                                        <td class="p-2.5">OTHER_PLAYERS.csv</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-bold text-slate-600">#3</td>
+                                        <td class="p-2.5 font-bold">Rohit Sharma</td>
+                                        <td class="p-2.5">Batsman</td>
+                                        <td class="p-2.5 text-brand-700 font-bold">₹ 23,000,000</td>
+                                        <td class="p-2.5">IND_PLAYERS</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-bold text-slate-600">#4</td>
+                                        <td class="p-2.5 font-bold">Pat Cummins</td>
+                                        <td class="p-2.5">Bowler</td>
+                                        <td class="p-2.5 text-brand-700 font-bold">₹ 22,000,000</td>
+                                        <td class="p-2.5">AUS_PLAYERS / ENG</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-bold text-slate-600">#5</td>
+                                        <td class="p-2.5 font-bold">Ben Stokes</td>
+                                        <td class="p-2.5">All-Rounder</td>
+                                        <td class="p-2.5 text-brand-700 font-bold">₹ 21,000,000</td>
+                                        <td class="p-2.5">ENG_PLAYERS</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="prev-5" class="preview-drawer hidden p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono space-y-1.5 border border-slate-800">
+                            <div class="text-brand-400 font-bold flex items-center justify-between">
+                                <span><i class="fa-brands fa-youtube text-red-500 mr-1"></i> Referencia de Video [Min 33:15]</span>
+                                <span class="text-slate-400">Workflow Monitor - Execution Summary</span>
+                            </div>
+                            <p class="text-slate-300">
+                                Estado de la sesión: <span class="text-emerald-400 font-bold">SUCCEEDED</span>. Lectura de 12 registros de entrada (3 IND, 3 AUS, 3 ENG, 3 OTHERS), depuración de 2 duplicados en Sorter dejando 10 únicos y carga exitosa de exactamente 5 filas en el Target.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ACTO 4: APRENDIZAJES Y RESULTADOS -->
+        <section id="acto-4" class="space-y-6 scroll-mt-20">
+            <div class="flex items-center space-x-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold font-mono flex items-center justify-center">04</span>
+                <h2 class="text-xl font-bold text-slate-900">Acto 4: Aprendizajes Clave y Preguntas de Entrevista</h2>
+            </div>
+
+            <div class="case-card p-6 space-y-5 text-sm text-slate-700 leading-relaxed">
+                <p>
+                    El desarrollo de este proyecto me dotó de respuestas sólidas para escenarios reales de ingeniería de datos y preguntas de entrevistas técnicas avanzadas:
+                </p>
+
+                <div class="space-y-3 text-xs">
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">Q: ¿Por qué la UNION Transformation en Informatica es una transformación ACTIVA?</div>
+                        <p class="text-slate-600">
+                            Porque combina múltiples Input Groups en un único Output Group. Aunque el total de filas sea la suma de las entradas, el número de filas en el pipeline cambia respecto a cada flujo individual entrante.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">Q: ¿En qué se diferencia UNION TR en Informatica de un UNION en SQL?</div>
+                        <p class="text-slate-600">
+                            En Informatica, la UNION Transformation equivale exactamente a un <code class="font-mono text-xs font-bold">UNION ALL</code> de SQL: **no filtra ni depura registros duplicados ni ordena los datos**. Para descartar filas repetidas se requiere agregar posteriormente una Sorter Transformation (`Select Distinct = True`).
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                        <div class="font-bold text-slate-900">Q: ¿Por qué la Rank Transformation utiliza dos archivos de caché en disco/memoria?</div>
+                        <p class="text-slate-600">
+                            Utiliza la **Rank Index Cache** para almacenar las claves de ordenamiento y agrupación (ej. `SALARY`), y la **Rank Data Cache** para retener los demás atributos de la fila mientras evalúa las jerarquías.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Pie de página sencillo -->
+    <footer class="border-t border-slate-200 bg-white py-6 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+                Caso de Estudio de Ingeniería de Datos &copy; 2026 • Kevin Mizael Gómez Uriarte
+            </div>
+            <a href="https://www.youtube.com/watch?v=CjYHtmlya2c" target="_blank" rel="noopener noreferrer" class="hover:text-brand-700 transition-colors flex items-center gap-1 font-medium">
+                <i class="fa-brands fa-youtube text-red-600"></i> Basado en Masterclass Lección 18
+            </a>
+        </div>
+    </footer>
+
+    <!-- Lógica Interactivas -->
+    <script>
+        function switchSqlTab(tabId) {
+            // Ocultar todos los contenidos de pestañas
+            document.querySelectorAll('.sql-tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Restablecer estado de botones
+            const buttons = ['btn-tab-ddl', 'btn-tab-set-ops', 'btn-tab-targets'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('bg-brand-700', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            // Mostrar contenido destino
+            const targetEl = document.getElementById(tabId.replace('btn-', 'code-').replace('tab-', 'code-'));
+            if (targetEl) targetEl.classList.remove('hidden');
+
+            // Destacar botón activo
+            const activeBtn = document.getElementById(tabId);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+                activeBtn.classList.add('bg-brand-700', 'text-white');
+            }
+        }
+
+        function copyActiveCode() {
+            const visibleTab = document.querySelector('.sql-tab-content:not(.hidden)');
+            if (visibleTab) {
+                copyCode(visibleTab.id);
+            }
+        }
+
+        function togglePreview(id) {
+            const drawer = document.getElementById(id);
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function copyCode(elementId) {
+            const codeEl = document.getElementById(elementId);
+            if (!codeEl) return;
+            const textToCopy = codeEl.innerText;
+            
+            // API Clipboard con fallback
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => showToast('¡Código copiado al portapapeles!'))
+                    .catch(() => fallbackCopy(textToCopy));
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('¡Código copiado al portapapeles!');
+            } catch (err) {
+                showToast('Error al copiar el texto');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(msg) {
+            const existingToast = document.getElementById('active-toast');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'active-toast';
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg border border-slate-700 transition-all duration-300';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2200);
+        }
+    </script>
+
+</body>
+</html>
