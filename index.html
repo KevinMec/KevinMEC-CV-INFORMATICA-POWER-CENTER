@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kevin Gómez | Data Engineer Portfolio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0f0fe',
+                            200: '#bae0fd',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border-color: #bae0fd; }
+    </style>
+</head>
+<body class="custom-scrollbar relative">
+
+    <!-- Navegación -->
+    <header class="fixed top-0 w-full z-40 glass-nav border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                    KG
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-slate-900 leading-tight">Kevin Mizael Gómez Uriarte</h1>
+                    <span class="text-xs text-brand-600 font-medium">Data Engineer</span>
+                </div>
+            </div>
+            <nav class="hidden md:flex gap-6 text-sm font-medium text-slate-600">
+                <a href="#experiencia" class="hover:text-brand-700 transition">Experiencia</a>
+                <a href="#proyectos" class="hover:text-brand-700 transition">Proyectos ETL</a>
+                <a href="#habilidades" class="hover:text-brand-700 transition">Habilidades</a>
+            </nav>
+            <div>
+                <!-- Enlace al PDF del repositorio -->
+                <a href="Kevin_Gomez_CV_DataEngineer.pdf" target="_blank" download class="px-4 py-2 bg-slate-900 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Descargar CV</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-16 px-4 max-w-5xl mx-auto flex flex-col-reverse sm:flex-row items-center justify-between gap-10">
+        
+        <!-- Texto de Introducción -->
+        <div class="flex-1 space-y-5 text-center sm:text-left">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-xs font-semibold uppercase tracking-wide">
+                <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span> Disponible para nuevos retos
+            </div>
+            <h2 class="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Transformando datos complejos en <span class="text-brand-600">decisiones estratégicas.</span>
+            </h2>
+            <p class="text-base text-slate-600 leading-relaxed max-w-2xl mx-auto sm:mx-0">
+                Data Engineer especializado en el desarrollo y optimización de procesos ETL, diseño de Data Warehouses (On Premise/AWS) y automatización de flujos de datos. Orientado a la calidad del dato y la resolución analítica de problemas.
+            </p>
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
+                <a href="mailto:kevin.gomez.mec@gmail.com" class="px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-envelope text-slate-400"></i> Contacto
+                </a>
+                <a href="https://linkedin.com/in/kevin-gomez" target="_blank" class="px-4 py-2 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+                    <i class="fa-brands fa-linkedin text-[#0A66C2]"></i> LinkedIn
+                </a>
+                <div class="px-4 py-2 text-slate-500 text-sm font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-location-dot"></i> Culiacán, Sin.
+                </div>
+            </div>
+        </div>
+
+        <!-- Foto de Perfil (Añadida) -->
+        <div class="relative w-48 h-48 sm:w-56 sm:h-56 md:w-72 md:h-72 flex-shrink-0 group">
+            <!-- Efecto de resplandor de fondo -->
+            <div class="absolute inset-0 bg-brand-500 rounded-full opacity-20 blur-3xl transform group-hover:scale-110 transition-transform duration-700 -z-10"></div>
+            <!-- Borde exterior decorativo -->
+            <div class="absolute inset-0 rounded-full border-2 border-brand-200/50 scale-[1.05] -z-10"></div>
+            <!-- Imagen Principal -->
+            <img src="FotoPortadaCV.png" alt="Kevin Gómez - Data Engineer" onerror="this.src='FotoPortadaCV.jpg'" class="relative w-full h-full object-cover object-top rounded-full border-4 border-white shadow-xl shadow-slate-200/50 transition-transform duration-500 group-hover:scale-[1.02]">
+        </div>
+        
+    </section>
+
+    <!-- Proyectos Destacados (IFRAME MODAL TRIGGERS) -->
+    <section id="proyectos" class="py-16 bg-white border-y border-slate-200">
+        <div class="max-w-5xl mx-auto px-4">
+            <h3 class="text-2xl font-bold text-slate-900 mb-2">Proyectos & Casos de Estudio ETL</h3>
+            <p class="text-sm text-slate-500 mb-8">Documentación técnica paso a paso de implementaciones reales en Informatica PowerCenter y Oracle SQL.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Proyecto 1 -->
+                <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl card-hover flex flex-col h-full cursor-pointer" onclick="openProject('data_engineer_portfolio_story.html', 'Lookup Transformation & Enriquecimiento')">
+                    <div class="w-10 h-10 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center mb-4 text-lg">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 mb-2">Lookup Transformation & Enriquecimiento</h4>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Integración de fuentes heterogéneas y gestión de cachés (Static/Dynamic) para el enriquecimiento dimensional de datos de jugadores.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Informatica</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Oracle SQL</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Connected Lookup</span>
+                    </div>
+                    <div class="text-brand-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all mt-auto">
+                        Abrir visor interactivo <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Proyecto 2 -->
+                <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl card-hover flex flex-col h-full cursor-pointer" onclick="openProject('caso_de_estudio_etl_union_rank.html', 'UNION, Depuración & RANK')">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 text-lg">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 mb-2">UNION, Depuración de Duplicados & RANK</h4>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Consolidación multifuente mediante UNION Transformation, depuración de registros con Sorter Distinct y jerarquización de Top-N salarios.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Sorter TR</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Rank TR</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Set Operators</span>
+                    </div>
+                    <div class="text-brand-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all mt-auto">
+                        Abrir visor interactivo <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Proyecto 3 -->
+                <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl card-hover flex flex-col h-full cursor-pointer" onclick="openProject('caso_de_estudio_flat_files.html', 'Gestión Avanzada de Flat Files')">
+                    <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mb-4 text-lg">
+                        <i class="fa-solid fa-file-csv"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 mb-2">Gestión Avanzada de Flat Files</h4>
+                    <p class="text-sm text-slate-600 mb-4 flex-grow">Arquitecturas File-to-DB, DB-to-File y File-to-File. Configuración de metadatos de ancho fijo/delimitados y enrutamiento absoluto en servidores ETL.</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">CSV/DAT</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">Session Variables</span>
+                        <span class="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded">$PMSourceFileDir</span>
+                    </div>
+                    <div class="text-brand-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all mt-auto">
+                        Abrir visor interactivo <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Cheat Sheet -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl card-hover flex flex-col h-full cursor-pointer" onclick="openProject('apuntes_informatica_powercenter.html', 'Cheat Sheet: PowerCenter')">
+                    <div class="w-10 h-10 rounded-lg bg-slate-800 text-brand-400 flex items-center justify-center mb-4 text-lg border border-slate-700">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-2">Apuntes Técnicos: Informatica PowerCenter</h4>
+                    <p class="text-sm text-slate-400 mb-4 flex-grow">Mi hoja de trucos personal (Cheat Sheet) para consultas rápidas sobre configuraciones, arquitecturas y troubleshooting de errores comunes (FR_3000, etc).</p>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="text-[10px] font-mono bg-slate-800 text-brand-300 px-2 py-1 rounded border border-slate-700">Documentación</span>
+                        <span class="text-[10px] font-mono bg-slate-800 text-brand-300 px-2 py-1 rounded border border-slate-700">Troubleshooting</span>
+                    </div>
+                    <div class="text-brand-400 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all mt-auto">
+                        Abrir apuntes <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experiencia y Educación -->
+    <section id="experiencia" class="py-16 max-w-5xl mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            
+            <!-- Columna Izquierda: Experiencia -->
+            <div class="lg:col-span-2 space-y-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2"><i class="fa-solid fa-briefcase text-brand-600"></i> Experiencia Profesional</h3>
+                    
+                    <div class="relative border-l border-slate-200 ml-3 space-y-8 pb-4">
+                        
+                        <!-- Trabajo 1 -->
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-brand-600 border-4 border-white"></span>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
+                                <h4 class="text-lg font-bold text-slate-900">Especialista de Datos</h4>
+                                <span class="text-xs font-semibold text-brand-600 bg-brand-50 px-2 py-1 rounded">Sept 2024 – May 2026</span>
+                            </div>
+                            <div class="text-sm text-slate-500 font-medium mb-3">Coppel | Culiacán, MX</div>
+                            <ul class="text-sm text-slate-600 list-disc list-outside ml-4 space-y-2">
+                                <li>Diseñé y optimicé flujos ETL utilizando <strong>SQL Server (SSIS)</strong> y <strong>Python</strong> para integrar conjuntos de datos de múltiples servidores.</li>
+                                <li>Construí consultas SQL complejas para validar, probar y depurar pipelines, garantizando la calidad de la información.</li>
+                                <li>Desarrollé dashboards y reportes interactivos en <strong>Looker Studio</strong> y Excel conectando múltiples APIs y bases de datos.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Trabajo 2 -->
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-300 border-4 border-white"></span>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
+                                <h4 class="text-lg font-bold text-slate-900">Analista de Datos</h4>
+                                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded">Feb 2024 – Ago 2024</span>
+                            </div>
+                            <div class="text-sm text-slate-500 font-medium mb-3">SuKarne | Culiacán, MX</div>
+                            <ul class="text-sm text-slate-600 list-disc list-outside ml-4 space-y-2">
+                                <li>Optimicé el rendimiento de KPI's en Tableau mediante migraciones estructurales de vistas de SQL Server a <strong>Google BigQuery</strong>.</li>
+                                <li>Diseñé de la mano con el equipo ETL en <strong>Informatica PowerCenter</strong>, combinando fuentes MSSQL y SAP para su consumo en SAP Business Objects.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Trabajo 3 -->
+                        <div class="relative pl-6">
+                            <span class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-slate-300 border-4 border-white"></span>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
+                                <h4 class="text-lg font-bold text-slate-900">Practicante de Ingeniería</h4>
+                                <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded">Ago 2023 – Dic 2023</span>
+                            </div>
+                            <div class="text-sm text-slate-500 font-medium mb-3">Safran Electronics & Defense | Mexicali, BC</div>
+                            <ul class="text-sm text-slate-600 list-disc list-outside ml-4 space-y-2">
+                                <li>Implementé algoritmos de visión artificial (Python, OpenCV) para extracción y estructuración de datos críticos desde planos de ingeniería.</li>
+                                <li>Digitalicé documentación técnica para trazabilidad de la cadena de suministro (normativas REACH/RoHS).</li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Habilidades & Educación -->
+            <div id="habilidades" class="space-y-8">
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2"><i class="fa-solid fa-code text-brand-600 mr-2"></i> Stack Tecnológico</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Cloud & Data Platforms</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">AWS (Athena, EMR)</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">SQL Server</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">BigQuery</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">SAP</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">ETL & BI Tools</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded border border-brand-100">Informatica PowerCenter</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">SSIS</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">Oracle Database</span>
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">Tableau / Looker</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Lenguajes</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2.5 py-1 bg-slate-800 text-white text-xs font-mono rounded">SQL</span>
+                                <span class="px-2.5 py-1 bg-slate-800 text-white text-xs font-mono rounded">Python (Pandas)</span>
+                                <span class="px-2.5 py-1 bg-slate-800 text-white text-xs font-mono rounded">Java</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2"><i class="fa-solid fa-graduation-cap text-brand-600 mr-2"></i> Educación & Cert.</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">Ingeniería en Mecatrónica</h4>
+                            <p class="text-xs text-brand-600 font-medium">Especialidad en Automatización</p>
+                            <p class="text-xs text-slate-500 mt-1">Instituto Tecnológico de Culiacán (TecNM)</p>
+                        </div>
+
+                        <ul class="text-xs text-slate-600 space-y-2 pt-2 border-t border-slate-100">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-certificate text-amber-500 mt-0.5"></i> 
+                                <span>Informatica PowerCenter: From Scratch to an Advanced Level (2026)</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-certificate text-amber-500 mt-0.5"></i> 
+                                <span>Oracle Database Admin Zero to Hero (2026)</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-certificate text-amber-500 mt-0.5"></i> 
+                                <span>Microsoft Data Analyst Associate PL-300 (2026)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-xs">
+        <p>Desarrollado por Kevin Mizael Gómez Uriarte &copy; 2026.</p>
+        <p class="mt-1">Data Engineering Portfolio construido con HTML, Tailwind CSS y GitHub Pages.</p>
+    </footer>
+
+    <!-- MODAL IFRAME VISOR DE PROYECTOS -->
+    <div id="project-modal" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 transition-opacity">
+        <div class="bg-white w-full max-w-6xl h-full sm:h-[90vh] rounded-xl flex flex-col overflow-hidden shadow-2xl relative animate-[fadeIn_0.2s_ease-out]">
+            <!-- Header del Modal -->
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-amber-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+                    <h3 id="project-modal-title" class="ml-2 font-mono text-xs sm:text-sm font-bold text-slate-700 truncate max-w-[200px] sm:max-w-md">Cargando proyecto...</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a id="project-external-link" href="#" target="_blank" class="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors hidden sm:flex items-center gap-1">
+                        Abrir en pestaña nueva <i class="fa-solid fa-external-link-alt"></i>
+                    </a>
+                    <button onclick="closeProject()" class="w-8 h-8 rounded bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-600 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Contenedor del IFrame -->
+            <div class="flex-1 w-full bg-slate-100 relative">
+                <!-- Loader placeholder -->
+                <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
+                    <span class="text-sm font-medium animate-pulse">Cargando documento...</span>
+                </div>
+                <iframe id="project-iframe" class="w-full h-full border-none relative z-10" onload="document.getElementById('iframe-loader').style.display='none'"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de Interacción -->
+    <script>
+        function openProject(htmlFile, title) {
+            const modal = document.getElementById('project-modal');
+            const iframe = document.getElementById('project-iframe');
+            const titleEl = document.getElementById('project-modal-title');
+            const extLink = document.getElementById('project-external-link');
+            const loader = document.getElementById('iframe-loader');
+            
+            // Mostrar modal y loader
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Bloquear scroll de fondo
+            loader.style.display = 'flex';
+            
+            // Setear datos
+            titleEl.innerText = title;
+            extLink.href = htmlFile;
+            
+            // Cargar iframe con un pequeño delay para que la animación fluya
+            setTimeout(() => {
+                iframe.src = htmlFile;
+            }, 50);
+        }
+
+        function closeProject() {
+            const modal = document.getElementById('project-modal');
+            const iframe = document.getElementById('project-iframe');
+            
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Restaurar scroll
+            
+            // Limpiar iframe para detener videos/scripts en el fondo
+            setTimeout(() => {
+                iframe.src = '';
+            }, 300);
+        }
+
+        // Cerrar modal al presionar ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeProject();
+        });
+        
+        // Cerrar modal al hacer clic en el fondo gris
+        document.getElementById('project-modal').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('project-modal')) {
+                closeProject();
+            }
+        });
+    </script>
+</body>
+</html>
